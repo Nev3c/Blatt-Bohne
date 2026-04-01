@@ -65,26 +65,33 @@ const ZUBEREITUNGSARTEN = ["Espresso","Espresso Macchiato","Cappuccino","Latte M
 const ROEST_HEX = {"Hell":"#e8c850","Mittelhell":"#c89828","Mittel":"#a07018","Mitteldunkel":"#784808","Dunkel":"#4c2605","Sehr Dunkel":"#2a1204"};
 const TEE_HEX = {"Grüner Tee":"#3a7228","Weißer Tee":"#8a7850","Oolong":"#784818","Schwarzer Tee":"#4c2605","Kräutertee":"#486028","Früchtetee":"#903018","Pu-Erh":"#341408","Rooibos":"#803018","Matcha":"#306018","Gewürztee":"#683818"};
 
-const LAENDER_COORDS = {
-  // Coords in 900x460 pixel space matching the map image
-  "Indien":{x:612,y:238},"Japan":{x:798,y:148},"China":{x:702,y:170},
-  "Vietnam":{x:700,y:255},"Indonesien":{x:738,y:295},
-  "Thailand":{x:682,y:248},"Nepal":{x:614,y:190},"Taiwan":{x:753,y:200},
-  "Russland":{x:648,y:100},
-  "\u00c4thiopien":{x:510,y:278},"Kenia":{x:515,y:305},"Tansania":{x:506,y:322},
-  "Ruanda":{x:495,y:308},"Uganda":{x:490,y:298},
-  "Marokko":{x:406,y:190},"Kamerun":{x:458,y:278},
-  "Italien":{x:452,y:165},"Deutschland":{x:441,y:135},"Frankreich":{x:425,y:150},
-  "Griechenland":{x:468,y:172},
-  "USA":{x:152,y:185},"Mexiko":{x:143,y:235},
-  "Kolumbien":{x:196,y:300},"Brasilien":{x:224,y:368},
-  "Peru":{x:186,y:342},"Guatemala":{x:154,y:248},
-  "Costa Rica":{x:163,y:262},
-  "Australien":{x:754,y:390},
-  "Bulgarien":{x:476,y:162},
-  "Kanada":{x:152,y:120},
-  "Argentinien":{x:224,y:420},
+// Lat/lon for each country – converted to pixel at render time
+const LAENDER_LATLON = {
+  "Indien":{lat:21,lon:79},"Japan":{lat:36,lon:138},"China":{lat:35,lon:105},
+  "Vietnam":{lat:16,lon:106},"Indonesien":{lat:-2,lon:118},
+  "Thailand":{lat:15,lon:101},"Nepal":{lat:28,lon:84},"Taiwan":{lat:23.5,lon:121},
+  "Russland":{lat:60,lon:90},
+  "\u00c4thiopien":{lat:9,lon:40},"Kenia":{lat:-1,lon:38},"Tansania":{lat:-6,lon:35},
+  "Ruanda":{lat:-2,lon:30},"Uganda":{lat:1,lon:32},
+  "Marokko":{lat:32,lon:-5},"Kamerun":{lat:6,lon:12},
+  "Italien":{lat:42,lon:12},"Deutschland":{lat:51,lon:10},"Frankreich":{lat:46,lon:2},
+  "Griechenland":{lat:39,lon:22},
+  "USA":{lat:39,lon:-98},"Mexiko":{lat:23,lon:-102},
+  "Kolumbien":{lat:4,lon:-74},"Brasilien":{lat:-10,lon:-51},
+  "Peru":{lat:-10,lon:-76},"Guatemala":{lat:15.5,lon:-90},
+  "Costa Rica":{lat:10,lon:-84},
+  "Australien":{lat:-25,lon:134},
+  "Bulgarien":{lat:43,lon:25},
+  "Kanada":{lat:56,lon:-96},
+  "Argentinien":{lat:-34,lon:-64},
 };
+// Equirectangular projection: map is 900×460, covers -180..180 lon, 83..-67 lat
+function geoToPixel(ll) {
+  return {x:(ll.lon+180)/360*900, y:(83-ll.lat)/150*460};
+}
+const LAENDER_COORDS = Object.fromEntries(
+  Object.entries(LAENDER_LATLON).map(([k,v])=>[k,geoToPixel(v)])
+);
 
 
 const STANDARD_KAFFEES=[
@@ -143,11 +150,22 @@ function btn(props, ...ch) { return h('button', props, ...ch.flat()); }
 function span(props, ...ch) { return h('span', props, ...ch.flat()); }
 function inp(props) { return h('input', props); }
 
+// ── CupIcon ───────────────────────────────────────────────────
+function CupIcon({size=17}) {
+  return h('svg',{width:size,height:size,viewBox:"0 0 24 24",fill:"none",style:{display:"inline-block",verticalAlign:"middle"}},
+    h('path',{d:"M5 6h12v2h1.5c1.38 0 2.5 1.12 2.5 2.5S19.88 13 18.5 13H17v1c0 1.66-1.34 3-3 3H8c-1.66 0-3-1.34-3-3V6z",fill:"rgba(212,180,131,0.85)",stroke:"rgba(42,22,8,0.7)",strokeWidth:"1"}),
+    h('path',{d:"M17 8h1.5c0.83 0 1.5 0.67 1.5 1.5S19.33 12 18.5 12H17V8z",fill:"rgba(180,140,80,0.6)"}),
+    h('rect',{x:4,y:18,width:14,height:1.5,rx:0.75,fill:"rgba(212,180,131,0.5)"}),
+    h('path',{d:"M8 3c0.5-1 1.5-1 2 0",stroke:"rgba(212,180,131,0.4)",strokeWidth:"1",strokeLinecap:"round",fill:"none"}),
+    h('path',{d:"M11 2.5c0.5-1 1.5-1 2 0",stroke:"rgba(212,180,131,0.3)",strokeWidth:"1",strokeLinecap:"round",fill:"none"})
+  );
+}
+
 // ── TassenBadge ────────────────────────────────────────────────
 function TassenBadge({count}) {
   if (!count) return null;
   return div({style:{display:"flex",alignItems:"center",gap:4,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",color:W(0.7),padding:"6px 10px",borderRadius:3}},
-    span({style:{fontSize:17}}, "☕"),
+    h(CupIcon, {size:17}),
     span({style:{fontFamily:"'Libre Baskerville',serif",fontSize:14,fontWeight:700}}, count)
   );
 }
@@ -166,12 +184,17 @@ function Weltkarte({laender}) {
       h('svg', {viewBox:"0 0 900 460", style:{width:"100%",height:"auto",display:"block"}},
         // Actual map image - white continent outlines on transparent
         h('image', {href:MAP, x:0, y:0, width:900, height:460, opacity:0.55}),
-        // Pins
+        // Pins – Google Maps style teardrops, tip at coordinate
         ...bekannt.map(l => {
           const p = LAENDER_COORDS[l];
-          return h(Fragment,{key:l},
-            h('circle',{cx:p.x,cy:p.y,r:"18",fill:"rgba(212,180,131,0.92)",stroke:"rgba(42,22,8,0.85)",strokeWidth:"3"}),
-            h('circle',{cx:p.x,cy:p.y,r:"7",fill:"rgba(42,22,8,0.9)"})
+          // Teardrop: tip at (p.x, p.y), body extends upward
+          return h('g',{key:l,transform:"translate("+p.x+","+p.y+")"},
+            // Shadow
+            h('ellipse',{cx:0,cy:2,rx:8,ry:3,fill:"rgba(0,0,0,0.25)"}),
+            // Teardrop shape: point at bottom (0,0), bulge at top
+            h('path',{d:"M0,0 C-4,-8 -12,-18 -12,-26 A12,12 0 1,1 12,-26 C12,-18 4,-8 0,0Z",fill:SAND,stroke:"rgba(42,22,8,0.85)",strokeWidth:"2.5"}),
+            // Inner circle
+            h('circle',{cx:0,cy:-26,r:"6",fill:"rgba(42,22,8,0.85)"})
           );
         })
       )
@@ -964,7 +987,7 @@ function App() {
           btn({onClick:()=>{setFilterAroma(null);setFilterTeeSorte(null);},style:{fontSize:13,background:"transparent",border:"none",color:"rgba(220,100,100,0.7)",cursor:"pointer",padding:"2px 6px"}}, "\u2715")
         ) : null,
         !serverGeladen ? h(Lader) : null,
-        ...aktItems.map(item => h(Karte, {
+        ...(serverGeladen ? aktItems : []).map(item => h(Karte, {
           key:item.id, item, istTee:istTeeTab,
           isAdmin, onLoeschen:id=>loeschen(id,istTeeTab),
           onBestellen:item=>setBestellModal({item,istTee:istTeeTab}),
