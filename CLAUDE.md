@@ -51,7 +51,7 @@ Uses an IIFE pattern — do **not** replace with ternary chains:
 ```
 
 ### World map coordinates
-Stored as lat/lon in `LAENDER_LATLON`, converted to pixel via `geoToPixel()` at render time. Map image is 900×460 **Web Mercator** projection (bounds: 85°N to -60°S). To add a country, just add `{lat, lon}` to `LAENDER_LATLON`.
+Stored as lat/lon in `LAENDER_LATLON`, converted to pixel via `geoToPixel()` at render time. Map image is 900×460 **equirectangular** projection (bounds: 80.3°N to -63.2°S, calibrated from coastline reference points). To add a country, just add `{lat, lon}` to `LAENDER_LATLON`.
 
 ### Order flow (BestellModal)
 Two-step for coffee: (1) choose Zubereitung → (2) optional name + Bestellen. One-step for tea: name + Bestellen directly. Saved guest names are stored in localStorage (`NAMES_CACHE_KEY`) and shown as selectable chips. Admin can delete saved names.
