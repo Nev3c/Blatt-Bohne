@@ -6,8 +6,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="theme-color" content="#1e120a"/>
   <title>Blatt &amp; Bohne</title>
-  <link rel="manifest" href="/manifest.json"/>
-  <link rel="apple-touch-icon" href="/icon.png"/>
+  <link rel="manifest" href="./manifest.json"/>
+  <link rel="apple-touch-icon" href="./icon.png"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Barlow+Condensed:wght@300;400;500;600;700&family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -85,9 +85,15 @@ const LAENDER_LATLON = {
   "Kanada":{lat:56,lon:-96},
   "Argentinien":{lat:-34,lon:-64},
 };
-// Equirectangular projection: map is 900×460, covers -180..180 lon, 83..-67 lat
+// Web Mercator projection: map is 900×460, covers -180..180 lon, 85..-60 lat
 function geoToPixel(ll) {
-  return {x:(ll.lon+180)/360*900, y:(83-ll.lat)/150*460};
+  var x = (ll.lon+180)/360*900;
+  var latRad = ll.lat*Math.PI/180;
+  var topRad = Math.log(Math.tan(Math.PI/4 + 85*Math.PI/360));
+  var botRad = Math.log(Math.tan(Math.PI/4 + (-60)*Math.PI/360));
+  var mercY = Math.log(Math.tan(Math.PI/4 + latRad/2));
+  var y = (topRad - mercY) / (topRad - botRad) * 460;
+  return {x:x, y:y};
 }
 const LAENDER_COORDS = Object.fromEntries(
   Object.entries(LAENDER_LATLON).map(([k,v])=>[k,geoToPixel(v)])
@@ -756,25 +762,19 @@ function App() {
     }
   };
 
-  const bestellenMitZubereitung = async z => {
-    if (!bestellModal) return;
-    const {item,istTee} = bestellModal;
-    const b = {gast:gastName||"Gast",getraenk:item.name,typ:istTee?"Tee":"Kaffee",zubereitung:z,uhrzeit:new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})};
-    const neuB = [...bestellungen,b];
-    const neuT = {...tassen,[item.id]:(tassen[item.id]||0)+1};
-    setBestellungen(neuB); setTassen(neuT); setBestellModal(null); setBestaetigt(b); setGastName("");
-    await poste("bestellung_hinzufuegen",{bestellung:b});
-    if (!testModus) await poste("tassen_speichern",{tassen:neuT});
-    speichereCache({kaffees,tees,bestellungen:neuB,tassen:neuT,kommentare});
-  };
+  const [bestellSchritt, setBestellSchritt] = useState(0); // 0=zubereitung, 1=name
+  const [gewaehlteZubereitung, setGewaehlteZubereitung] = useState(null);
+  const gespeicherteNamen = ladeGespecherteNamen();
 
-  const bestellen = async () => {
+  const bestellungAbschliessen = async (zubereitung) => {
     if (!bestellModal) return;
     const {item,istTee} = bestellModal;
-    const b = {gast:gastName||"Gast",getraenk:item.name,typ:istTee?"Tee":"Kaffee",zubereitung:null,uhrzeit:new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})};
+    const name = gastName.trim() || "Gast";
+    if (name !== "Gast") addiereNameZuCache(name);
+    const b = {gast:name,getraenk:item.name,typ:istTee?"Tee":"Kaffee",zubereitung:zubereitung||null,uhrzeit:new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})};
     const neuB = [...bestellungen,b];
     const neuT = {...tassen,[item.id]:(tassen[item.id]||0)+1};
-    setBestellungen(neuB); setTassen(neuT); setBestellModal(null); setBestaetigt(b); setGastName("");
+    setBestellungen(neuB); setTassen(neuT); setBestellModal(null); setBestaetigt(b); setGastName(""); setBestellSchritt(0); setGewaehlteZubereitung(null);
     await poste("bestellung_hinzufuegen",{bestellung:b});
     if (!testModus) await poste("tassen_speichern",{tassen:neuT});
     speichereCache({kaffees,tees,bestellungen:neuB,tassen:neuT,kommentare});
@@ -846,27 +846,39 @@ function App() {
       )
     ),
 
-    // Bestellmodal
+    // Bestellmodal – Step 0: Zubereitung (Kaffee) / Step 1: Name + Bestellen
     bestellModal && div({style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:150},className:"fade-in"},
       div({style:{background:"#251508",borderTop:"1px solid rgba(160,120,50,0.4)",padding:"14px 20px 38px",width:"100%",maxWidth:520}},
         div({style:{width:36,height:3,background:"rgba(180,140,60,0.3)",borderRadius:2,margin:"0 auto 18px"}}),
         div({style:{fontFamily:"'Caveat',cursive",fontSize:26,color:"#fff",marginBottom:2}}, bestellModal.item.name),
         div({style:{fontSize:12,color:"rgba(180,148,90,0.5)",letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:16}}, (bestellModal.istTee?"Tee":"Kaffee")+" — "+bestellModal.item.subtitle),
-        div({style:{fontSize:10,color:"rgba(180,148,90,0.55)",letterSpacing:"0.2em",textTransform:"uppercase",display:"block",marginBottom:5,fontWeight:600}}, "Name (optional)"),
-        inp({style:{...INP_STYLE,marginBottom:14,background:"rgba(40,18,4,0.5)",border:"1px solid rgba(160,120,50,0.3)",color:"#dccfa8"},value:gastName,onChange:e=>setGastName(e.target.value),placeholder:"z.B. Anna",autoFocus:true}),
-        bestellModal.istTee
-          ? div({style:{display:"flex",gap:8}},
-              btn({onClick:()=>{setBestellModal(null);setGastName("");},style:{flex:1,background:"transparent",border:"1px solid rgba(255,255,255,0.18)",color:W(0.4),fontSize:13,letterSpacing:"0.1em",textTransform:"uppercase",padding:"14px",cursor:"pointer",borderRadius:3}}, "Zurück"),
-              btn({onClick:bestellen,style:{flex:2,background:SAND,border:"none",color:BROWN,fontFamily:"'Caveat',cursive",fontSize:22,fontWeight:700,padding:"8px",cursor:"pointer",borderRadius:3}}, "Bestellen")
+        // Kaffee Step 0: Zubereitung wählen
+        !bestellModal.istTee && bestellSchritt === 0
+          ? div(null,
+              div({style:{fontSize:10,color:W(0.35),letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:9,fontWeight:700}}, "Zubereitung wählen"),
+              div({style:{display:"flex",flexDirection:"column",gap:7}},
+                ...ZUBEREITUNGSARTEN.map(z => btn({key:z,onClick:()=>{setGewaehlteZubereitung(z);setBestellSchritt(1);},style:{width:"100%",background:"rgba(61,32,16,0.3)",border:"1px solid rgba(160,120,50,0.25)",color:"#dccfa8",fontSize:16,letterSpacing:"0.04em",textTransform:"uppercase",padding:"14px 16px",cursor:"pointer",borderRadius:3,fontWeight:600,textAlign:"left",display:"flex",justifyContent:"space-between"}},
+                  span(null,z), span({style:{color:W(0.3)}},"→")
+                ))
+              ),
+              btn({onClick:()=>{setBestellModal(null);setGastName("");setBestellSchritt(0);setGewaehlteZubereitung(null);},style:{width:"100%",background:"transparent",border:"none",color:"rgba(160,120,50,0.4)",fontSize:12,letterSpacing:"0.12em",textTransform:"uppercase",padding:"13px",cursor:"pointer",marginTop:4}}, "Abbrechen")
             )
-          : [div({key:"zl",style:{fontSize:10,color:W(0.35),letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:9,fontWeight:700}}, "Zubereitung wählen"),
-             div({key:"zi",style:{display:"flex",flexDirection:"column",gap:7}},
-               ...ZUBEREITUNGSARTEN.map(z => btn({key:z,onClick:()=>bestellenMitZubereitung(z),style:{width:"100%",background:"rgba(61,32,16,0.3)",border:"1px solid rgba(160,120,50,0.25)",color:"#dccfa8",fontSize:16,letterSpacing:"0.04em",textTransform:"uppercase",padding:"14px 16px",cursor:"pointer",borderRadius:3,fontWeight:600,textAlign:"left",display:"flex",justifyContent:"space-between"}},
-                 span(null,z), span({style:{color:W(0.3)}},"→")
-               ))
-             ),
-             btn({key:"ab",onClick:()=>{setBestellModal(null);setGastName("");},style:{width:"100%",background:"transparent",border:"none",color:"rgba(160,120,50,0.4)",fontSize:12,letterSpacing:"0.12em",textTransform:"uppercase",padding:"13px",cursor:"pointer",marginTop:4}}, "Abbrechen")
-            ]
+          // Step 1 (Kaffee after Zubereitung) or Tee directly: Name + Bestellen
+          : div(null,
+              gewaehlteZubereitung ? div({style:{fontSize:13,color:SAND,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:12,padding:"8px 12px",background:"rgba(61,32,16,0.3)",border:"1px solid rgba(160,120,50,0.25)",borderRadius:3,display:"inline-block"}}, gewaehlteZubereitung) : null,
+              div({style:{fontSize:10,color:"rgba(180,148,90,0.55)",letterSpacing:"0.2em",textTransform:"uppercase",display:"block",marginBottom:5,fontWeight:600}}, "Name (optional)"),
+              gespeicherteNamen.length > 0 ? div({style:{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}},
+                ...gespeicherteNamen.map(n => div({key:n,style:{display:"flex",alignItems:"center",gap:0}},
+                  btn({onClick:()=>setGastName(n),style:{background:gastName===n?"rgba(212,180,131,0.2)":"rgba(40,18,4,0.5)",border:"1px solid "+(gastName===n?"rgba(212,180,131,0.5)":"rgba(160,120,50,0.25)"),color:gastName===n?SAND:"rgba(200,165,100,0.6)",fontSize:13,padding:"7px 12px",cursor:"pointer",borderRadius:isAdmin?"3px 0 0 3px":"3px",letterSpacing:"0.04em"}}, n),
+                  isAdmin ? btn({onClick:()=>{loescheNameAusCache(n);if(gastName===n)setGastName("");},style:{background:"rgba(40,18,4,0.5)",border:"1px solid rgba(160,60,60,0.3)",borderLeft:"none",color:"rgba(200,100,90,0.6)",fontSize:11,padding:"7px 6px",cursor:"pointer",borderRadius:"0 3px 3px 0"}}, "\u2715") : null
+                ))
+              ) : null,
+              inp({style:{...INP_STYLE,marginBottom:14,background:"rgba(40,18,4,0.5)",border:"1px solid rgba(160,120,50,0.3)",color:"#dccfa8"},value:gastName,onChange:e=>setGastName(e.target.value),placeholder:"z.B. Anna"}),
+              div({style:{display:"flex",gap:8}},
+                btn({onClick:()=>{if(!bestellModal.istTee&&bestellSchritt===1){setBestellSchritt(0);setGewaehlteZubereitung(null);}else{setBestellModal(null);setGastName("");setBestellSchritt(0);setGewaehlteZubereitung(null);}},style:{flex:1,background:"transparent",border:"1px solid rgba(255,255,255,0.18)",color:W(0.4),fontSize:13,letterSpacing:"0.1em",textTransform:"uppercase",padding:"14px",cursor:"pointer",borderRadius:3}}, "Zurück"),
+                btn({onClick:()=>bestellungAbschliessen(gewaehlteZubereitung),style:{flex:2,background:SAND,border:"none",color:BROWN,fontFamily:"'Caveat',cursive",fontSize:22,fontWeight:700,padding:"8px",cursor:"pointer",borderRadius:3}}, "Bestellen")
+              )
+            )
       )
     ),
 
