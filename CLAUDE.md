@@ -7,12 +7,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Blatt & Bohne** is a German-language PWA for a specialty café (coffee & tea). The entire frontend is a **single file** (`index.html`) with no build step, no npm, no Babel. React 18 is loaded via CDN and all components use `React.createElement` aliased as `h(...)`.
 
 - **Backend:** Google Apps Script REST API → Google Sheets as database
-- **Hosting:** Netlify (static, auto-deploys from GitHub)
-- **Live URL:** `heissgetraenke.netlify.app`
+- **Hosting:** GitHub Pages (static, auto-deploys from `main` branch)
+- **Live URL:** `nev3c.github.io/Blatt-Bohne`
+- **Target device:** Android (Honor Magic5 Pro) — test on mobile viewport
 
 ## Running / Developing
 
-There is **no build step**. Open `index.html` directly in a browser or deploy all 4 files to any static host.
+There is **no build step**. Open `index.html` directly in a browser or push to `main` for GitHub Pages auto-deploy.
 
 **Test mode (PIN `1234`):** Loads dummy data, never writes to Google Sheets — safe for development.  
 **Admin mode (PIN `4990`):** Full CRUD, real data, polls Sheets every 10s.
@@ -97,3 +98,7 @@ const BROWN = '#2a1608'  // text on buttons
 4. **`BestellModal` block needs a trailing `,`** after its last `)` — missing commas here caused many past bugs.
 5. **`CupIcon` must be defined before `TassenBadge`** — component ordering matters.
 6. **Never use `autoFocus` on inputs** — opens mobile keyboard and obscures the UI below.
+7. **No `STANDARD_KAFFEES`/`STANDARD_TEES` as fallback** — initial state uses empty arrays `[]` when no cache exists. Dummy data caused duplicates and showed Unsplash placeholder images.
+8. **Replace ☕ emoji everywhere with `CupIcon` component** — the app uses a custom SVG cup icon, never the ☕ Unicode emoji.
+9. **Map coordinates are lat/lon** — stored in `LAENDER_LATLON`, converted via `geoToPixel()`. To add a country, just add `{lat, lon}`.
+10. **Always update this file** — when changing architecture, hosting, components, or conventions, update CLAUDE.md to reflect the change.
