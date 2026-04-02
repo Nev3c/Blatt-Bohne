@@ -85,15 +85,10 @@ const LAENDER_LATLON = {
   "Kanada":{lat:56,lon:-96},
   "Argentinien":{lat:-34,lon:-64},
 };
-// Web Mercator projection: map is 900×460, covers -180..180 lon, 85..-60 lat
+// Equirectangular projection calibrated from coastline reference points
+// Map is 900×460, covers lon -180..180, lat 80.3..-63.2
 function geoToPixel(ll) {
-  var x = (ll.lon+180)/360*900;
-  var latRad = ll.lat*Math.PI/180;
-  var topRad = Math.log(Math.tan(Math.PI/4 + 85*Math.PI/360));
-  var botRad = Math.log(Math.tan(Math.PI/4 + (-60)*Math.PI/360));
-  var mercY = Math.log(Math.tan(Math.PI/4 + latRad/2));
-  var y = (topRad - mercY) / (topRad - botRad) * 460;
-  return {x:x, y:y};
+  return {x:(ll.lon+180)/360*900, y:(80.3-ll.lat)/143.5*460};
 }
 const LAENDER_COORDS = Object.fromEntries(
   Object.entries(LAENDER_LATLON).map(([k,v])=>[k,geoToPixel(v)])
