@@ -67,26 +67,26 @@ const TEE_HEX = {"Grüner Tee":"#3a7228","Weißer Tee":"#8a7850","Oolong":"#7848
 
 // Lat/lon for each country – converted to pixel at render time
 const LAENDER_LATLON = {
-  "Indien":{lat:21,lon:79},"Japan":{lat:36,lon:138},"China":{lat:35,lon:105},
-  "Vietnam":{lat:16,lon:106},"Indonesien":{lat:-2,lon:118},
-  "Thailand":{lat:15,lon:101},"Nepal":{lat:28,lon:84},"Taiwan":{lat:23.5,lon:121},
-  "Russland":{lat:60,lon:90},
-  "\u00c4thiopien":{lat:9,lon:40},"Kenia":{lat:-1,lon:38},"Tansania":{lat:-6,lon:35},
-  "Ruanda":{lat:-2,lon:30},"Uganda":{lat:1,lon:32},
-  "Marokko":{lat:32,lon:-5},"Kamerun":{lat:6,lon:12},
-  "Italien":{lat:42,lon:12},"Deutschland":{lat:51,lon:10},"Frankreich":{lat:46,lon:2},
-  "Griechenland":{lat:39,lon:22},
-  "USA":{lat:39,lon:-98},"Mexiko":{lat:23,lon:-102},
-  "Kolumbien":{lat:4,lon:-74},"Brasilien":{lat:-10,lon:-51},
-  "Peru":{lat:-10,lon:-76},"Guatemala":{lat:15.5,lon:-90},
-  "Costa Rica":{lat:10,lon:-84},
-  "Australien":{lat:-25,lon:134},
-  "Bulgarien":{lat:43,lon:25},
-  "Kanada":{lat:56,lon:-96},
-  "Argentinien":{lat:-34,lon:-64},
+  "Indien":{lat:14.8,lon:75.2},"Japan":{lat:35.1,lon:131.2},"China":{lat:31.9,lon:99.2},
+  "Vietnam":{lat:15.7,lon:103.2},"Indonesien":{lat:2.3,lon:107.2},
+  "Thailand":{lat:14.8,lon:99.2},"Nepal":{lat:23.2,lon:75.2},"Taiwan":{lat:20.4,lon:115.2},
+  "Russland":{lat:59.1,lon:79.2},
+  "\u00c4thiopien":{lat:10.1,lon:39.2},"Kenia":{lat:3.9,lon:38.4},"Tansania":{lat:-0.2,lon:37.2},
+  "Ruanda":{lat:2.9,lon:34.4},"Uganda":{lat:5.4,lon:35.2},
+  "Marokko":{lat:28.8,lon:4.8},"Kamerun":{lat:9.2,lon:21.2},
+  "Italien":{lat:43.8,lon:11.2},"Deutschland":{lat:49.1,lon:8.0},"Frankreich":{lat:46.6,lon:3.2},
+  "Griechenland":{lat:42.2,lon:16.8},
+  "USA":{lat:38.2,lon:-98},"Mexiko":{lat:23.2,lon:-100.8},
+  "Kolumbien":{lat:4.8,lon:-76.8},"Brasilien":{lat:-10.2,lon:-62},
+  "Peru":{lat:-7,lon:-79.2},"Guatemala":{lat:15.4,lon:-92.8},
+  "Costa Rica":{lat:11,lon:-90},
+  "Australien":{lat:-25.1,lon:135.2},
+  "Bulgarien":{lat:45.4,lon:18.4},
+  "Kanada":{lat:49.1,lon:-104},
+  "Argentinien":{lat:-33.6,lon:-68.8},
 };
-// Equirectangular projection calibrated from coastline reference points
-// Map is 900×460, covers lon -180..180, lat 80.3..-63.2
+// Equirectangular projection; lat/lon values in LAENDER_LATLON are
+// empirically adjusted to match pin positions on this specific map image
 function geoToPixel(ll) {
   return {x:(ll.lon+180)/360*900, y:(80.3-ll.lat)/143.5*460};
 }
@@ -922,8 +922,10 @@ function App() {
             : div(null, ...bestellungen.map((b,i) => div({key:i,style:{background:"rgba(40,18,4,0.3)",border:"1px solid rgba(160,120,50,0.2)",borderRadius:3,padding:"13px 15px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}},
                 div(null,
                   div({style:{fontFamily:"'Caveat',cursive",fontSize:20,color:SAND,fontWeight:700}}, b.getraenk),
-                  b.zubereitung ? div({style:{fontSize:12,color:"rgba(200,165,100,0.7)",letterSpacing:"0.04em",marginTop:2}}, b.zubereitung) : null,
-                  div({style:{fontSize:11,color:"rgba(180,148,90,0.5)",letterSpacing:"0.06em",textTransform:"uppercase",marginTop:2}}, b.typ),
+                  div({style:{fontSize:12,color:"rgba(180,148,90,0.5)",letterSpacing:"0.06em",textTransform:"uppercase",marginTop:3,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}},
+                    span(null, b.typ),
+                    b.zubereitung ? span({style:{color:"rgba(200,165,100,0.75)",background:"rgba(160,120,50,0.15)",border:"1px solid rgba(160,120,50,0.2)",borderRadius:2,padding:"1px 6px",fontSize:11,textTransform:"none",letterSpacing:"0.02em"}}, b.zubereitung) : null
+                  ),
                   div({style:{fontSize:11,color:"rgba(160,128,72,0.4)",marginTop:2}}, b.uhrzeit)
                 ),
                 div({style:{fontFamily:"'Caveat',cursive",fontSize:18,color:"rgba(200,165,100,0.65)",fontWeight:600,flexShrink:0,marginLeft:8}}, b.gast)
