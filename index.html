@@ -628,6 +628,7 @@ function App() {
   const [speichert, setSpeichert] = useState(false);
   const [serverGeladen, setServerGeladen] = useState(!!cache);
   const [gastName, setGastName] = useState("");
+  const [rezeptOffen, setRezeptOffen] = useState(null);
 
   const serverLaden = useCallback(async () => {
     try {
@@ -924,16 +925,50 @@ function App() {
           ),
           bestellungen.length === 0
             ? div({style:{textAlign:"center",padding:"50px 20px",color:"rgba(160,120,50,0.3)",fontSize:13,letterSpacing:"0.1em",textTransform:"uppercase"}}, "Noch keine Bestellungen")
-            : div(null, ...bestellungen.map((b,i) => div({key:i,style:{background:"rgba(40,18,4,0.3)",border:"1px solid rgba(160,120,50,0.2)",borderRadius:3,padding:"13px 15px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}},
-                div(null,
-                  div({style:{fontFamily:"'Caveat',cursive",fontSize:20,color:SAND,fontWeight:700}}, b.getraenk),
-                  div({style:{fontSize:12,color:"rgba(180,148,90,0.5)",letterSpacing:"0.06em",textTransform:"uppercase",marginTop:3,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}},
-                    span(null, b.typ),
-                    b.zubereitung ? span({style:{color:"rgba(200,165,100,0.75)",background:"rgba(160,120,50,0.15)",border:"1px solid rgba(160,120,50,0.2)",borderRadius:2,padding:"1px 6px",fontSize:11,textTransform:"none",letterSpacing:"0.02em"}}, b.zubereitung) : null
+            : div(null, ...bestellungen.map((b,i) => div({key:i,style:{background:"rgba(40,18,4,0.3)",border:"1px solid rgba(160,120,50,0.2)",borderRadius:3,marginBottom:8,overflow:"hidden"}},
+                div({style:{padding:"12px 15px",display:"flex",justifyContent:"space-between",alignItems:"center"}},
+                  div(null,
+                    div({style:{fontFamily:"'Caveat',cursive",fontSize:20,color:SAND,fontWeight:700}}, b.getraenk),
+                    div({style:{fontSize:11,color:"rgba(180,148,90,0.5)",letterSpacing:"0.06em",textTransform:"uppercase",marginTop:3}},
+                      (b.zubereitung?b.zubereitung+" \u2014 ":"")+b.typ
+                    ),
+                    div({style:{fontSize:11,color:"rgba(160,128,72,0.4)",marginTop:2}}, b.uhrzeit)
                   ),
-                  div({style:{fontSize:11,color:"rgba(160,128,72,0.4)",marginTop:2}}, b.uhrzeit)
+                  div({style:{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6,flexShrink:0,marginLeft:8}},
+                    div({style:{fontFamily:"'Caveat',cursive",fontSize:18,color:"rgba(200,165,100,0.65)",fontWeight:600}}, b.gast),
+                    btn({onClick:()=>setRezeptOffen(rezeptOffen===i?null:i),
+                      style:{fontSize:10,background:"rgba(40,18,4,0.5)",border:"1px solid rgba(160,120,50,0.2)",
+                        color:"rgba(180,148,90,0.5)",padding:"3px 8px",cursor:"pointer",
+                        borderRadius:2,letterSpacing:"0.1em",textTransform:"uppercase"}},
+                      rezeptOffen===i?"\u25b2 Rezept":"\u25bc Rezept")
+                  )
                 ),
-                div({style:{fontFamily:"'Caveat',cursive",fontSize:18,color:"rgba(200,165,100,0.65)",fontWeight:600,flexShrink:0,marginLeft:8}}, b.gast)
+                rezeptOffen===i && (()=>{
+                  const item = [...kaffees,...tees].find(k=>k.name===b.getraenk);
+                  if(!item||!item.params) return div({style:{padding:"0 15px 12px",fontSize:12,color:"rgba(180,148,90,0.4)"}}, "Keine Brühparameter");
+                  const p = item.params;
+                  const rows = p.mahlgrad!=null ? [
+                    ["Mahlgrad", (()=>{const m=p.mahlgrad;return (m<=10?Math.round(m*3):Math.round(m))+"/30";})()],
+                    ["Dosis", p.dosis],
+                    ["Temp.", p.temp],
+                    ["Brühzeit", p.zeit],
+                    ["Aufguss", (()=>{const ratio=p.ratio||"";const dosis=p.dosis||"";const rM=ratio.match(/1[:/]([\d,.]+)/);const dM=dosis.match(/([\d,.]+)[^\d,.]*(?:[-\u2013]([\d,.]+))?/);const rN=rM?parseFloat(rM[1].replace(",",".")):null;const dN=dM?parseFloat((dM[2]||dM[1]).replace(",",".")):null;return rN&&dN?ratio+" \u2248 "+Math.round(dN*rN)+"g":ratio;})()]
+                  ] : [
+                    ["Menge", p.menge],
+                    ["Temp.", p.temp],
+                    ["Ziehzeit", p.ziehzeit]
+                  ];
+                  return div({style:{margin:"0 15px 12px",padding:"10px 12px",background:"rgba(20,8,2,0.6)",borderRadius:3,border:"1px solid rgba(160,120,50,0.2)"}},
+                    div({style:{fontSize:10,color:"rgba(180,148,90,0.55)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8,fontWeight:700}},
+                      "REZEPT"+(b.zubereitung?" \u2014 "+b.zubereitung.toUpperCase():"")),
+                    div({style:{display:"grid",gridTemplateColumns:"auto 1fr",gap:"6px 14px"}},
+                      ...rows.filter(([,v])=>v).flatMap(([k,v])=>[
+                        div({style:{fontSize:10,color:"rgba(180,148,90,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",alignSelf:"center"}}, k),
+                        div({style:{fontSize:13,color:"#e8d0a0",fontWeight:700,fontFamily:"'Libre Baskerville',serif"}}, v)
+                      ])
+                    )
+                  );
+                })()
               )))
         );
       }
