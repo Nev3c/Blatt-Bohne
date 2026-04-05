@@ -112,6 +112,39 @@ function dedupListe(liste) {
   });
 }
 
+// Bild komprimieren falls > 40K Zeichen (für Google Sheets 50K-Limit)
+function komprimiereBild(dataUrl) {
+  return new Promise((resolve) => {
+    if (!dataUrl || dataUrl.length <= 40000) { resolve(dataUrl); return; }
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas");
+      const maxW = 400, maxH = 250;
+      const s = Math.min(maxW/img.width, maxH/img.height, 1);
+      c.width = Math.round(img.width*s); c.height = Math.round(img.height*s);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      let q = 0.5, r = c.toDataURL("image/jpeg", q);
+      while (r.length > 40000 && q > 0.1) { q -= 0.1; r = c.toDataURL("image/jpeg", q); }
+      console.log("[IMG] Rekomprimiert:", dataUrl.length, "→", r.length, "Zeichen");
+      resolve(r);
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+// Alle Bilder in einer Liste komprimieren
+async function komprimiereListenBilder(liste) {
+  let changed = false;
+  const neu = await Promise.all(liste.map(async item => {
+    if (item.bild && item.bild.length > 40000) {
+      changed = true;
+      return {...item, bild: await komprimiereBild(item.bild)};
+    }
+    return item;
+  }));
+  return {liste: neu, changed};
+}
 
 
 function ladeCache(){try{const c=localStorage.getItem(CACHE_KEY);return c?JSON.parse(c):null;}catch{return null;}}
@@ -594,7 +627,23 @@ function ImageCropper({src, onSave, onAbbrechen}) {
     const sx = OW/rect.width, sy = OH/rect.height;
     setOffset({x:(cx-rect.left-dragStart.x)*sx, y:(cy-rect.top-dragStart.y)*sy});
   };
-  const save = () => { draw(); onSave(canvasRef.current.toDataURL("image/jpeg",0.85)); };
+  const save = () => {
+    draw();
+    // Bild komprimieren: auf max 400x250 skalieren und JPEG 0.5 für Google Sheets 50K-Limit
+    const c2 = document.createElement("canvas");
+    const maxW = 400, maxH = 250;
+    c2.width = maxW; c2.height = maxH;
+    c2.getContext("2d").drawImage(canvasRef.current, 0, 0, OW, OH, 0, 0, maxW, maxH);
+    let quality = 0.5;
+    let result = c2.toDataURL("image/jpeg", quality);
+    // Falls immer noch zu groß, weiter komprimieren
+    while (result.length > 40000 && quality > 0.1) {
+      quality -= 0.1;
+      result = c2.toDataURL("image/jpeg", quality);
+    }
+    console.log("[IMG] Komprimiert:", result.length, "Zeichen, Qualität:", quality.toFixed(1));
+    onSave(result);
+  };
 
   return div({style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16},className:"fade-in"},
     div({style:{background:"#251508",border:"1px solid rgba(160,120,50,0.4)",borderRadius:4,padding:"16px",width:"100%",maxWidth:500}},
@@ -718,6 +767,17 @@ function App() {
   };
   const nachSpeichern = async (aktion, daten, neuerState) => {
     setSpeichert(true);
+    // Bilder komprimieren vor dem Speichern (Google Sheets 50K-Limit pro Zelle)
+    if (aktion==="kaffees_speichern" && daten.kaffees) {
+      const {liste} = await komprimiereListenBilder(daten.kaffees);
+      daten = {...daten, kaffees: liste};
+      neuerState = {...neuerState, kaffees: liste};
+    }
+    if (aktion==="tees_speichern" && daten.tees) {
+      const {liste} = await komprimiereListenBilder(daten.tees);
+      daten = {...daten, tees: liste};
+      neuerState = {...neuerState, tees: liste};
+    }
     if (sicherSpeichern(aktion, daten)) {
       await postiereWennEcht(aktion, daten);
     }
