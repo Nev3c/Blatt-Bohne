@@ -650,27 +650,30 @@ function App() {
   const [gewaehlterSirup, setGewaehlterSirup] = useState(null);
   const [gewaehlteMischung, setGewaehlteMischung] = useState(null);
 
+  // Schutz gegen Datenverlust: merke wie viele Items der Server hatte
+  const serverAnzahl = useRef({kaffees:0, tees:0});
+
   const serverLaden = useCallback(async () => {
     try {
       const d = await ladeVomServer();
-      // Server data is authoritative - if it has items, use ONLY those
-      // Server data is authoritative – always deduplicate by ID
       const dk = d.kaffees?.length>0 ? dedupListe(d.kaffees) : null;
       const dt = d.tees?.length>0 ? dedupListe(d.tees) : null;
+      // Server-Anzahl merken für Datenverlust-Schutz
+      serverAnzahl.current = {kaffees: dk?dk.length:0, tees: dt?dt.length:0};
       if(dk) setKaffees(dk);
       if(dt) setTees(dt);
       if(d.bestellungen?.length>0) setBestellungen(d.bestellungen);
       if(d.tassen&&Object.keys(d.tassen).length>0) setTassen(d.tassen);
       if(d.kommentare?.length>0) setKommentare(d.kommentare);
       if(d.sirups?.length>0) setSirups(d.sirups);
-      // Save deduplicated data to cache
+      // Cache: bestehende Daten bewahren wenn Server leer antwortet
       speichereCache({
-        kaffees: dk || [],
-        tees: dt || [],
-        bestellungen: d.bestellungen || [],
-        tassen: d.tassen || {},
-        kommentare: d.kommentare || [],
-        sirups: d.sirups?.length>0 ? d.sirups : sirups,
+        kaffees: dk || (cache?.kaffees||[]),
+        tees: dt || (cache?.tees||[]),
+        bestellungen: d.bestellungen?.length>0 ? d.bestellungen : (cache?.bestellungen||[]),
+        tassen: (d.tassen && Object.keys(d.tassen).length>0) ? d.tassen : (cache?.tassen||{}),
+        kommentare: d.kommentare?.length>0 ? d.kommentare : (cache?.kommentare||[]),
+        sirups: d.sirups?.length>0 ? d.sirups : (cache?.sirups||DEFAULT_SIRUPS),
       });
       setServerGeladen(true);
     } catch { setServerGeladen(true); }
@@ -694,15 +697,36 @@ function App() {
 
   const cacheAlles = (overrides={}) => speichereCache({kaffees,tees,bestellungen,tassen,kommentare,sirups,...overrides});
   const postiereWennEcht = async (a,d) => { if(testModus)return; await poste(a,d); };
+  // Datenverlust-Schutz: prüfe ob wir gerade massiv Daten löschen würden
+  const sicherSpeichern = (aktion, daten) => {
+    if (aktion==="kaffees_speichern" && daten.kaffees) {
+      const srv = serverAnzahl.current.kaffees;
+      if (srv>2 && daten.kaffees.length < srv*0.5) {
+        console.error("DATENSCHUTZ: Kaffees-Speichern blockiert! Neu:"+daten.kaffees.length+" Server:"+srv);
+        return false;
+      }
+    }
+    if (aktion==="tees_speichern" && daten.tees) {
+      const srv = serverAnzahl.current.tees;
+      if (srv>2 && daten.tees.length < srv*0.5) {
+        console.error("DATENSCHUTZ: Tees-Speichern blockiert! Neu:"+daten.tees.length+" Server:"+srv);
+        return false;
+      }
+    }
+    return true;
+  };
   const nachSpeichern = async (aktion, daten, neuerState) => {
     setSpeichert(true);
-    await postiereWennEcht(aktion, daten);
+    if (sicherSpeichern(aktion, daten)) {
+      await postiereWennEcht(aktion, daten);
+    }
     cacheAlles(neuerState);
     setSpeichert(false);
   };
 
   const hinzufuegen = async (f, istTee) => {
     if (!f.name) return;
+    if (!serverGeladen) { alert("Bitte warten – Daten werden noch geladen."); return; }
     const basis = {id:Date.now(),name:f.name,subtitle:f.subtitle,aromen:[f.a1,f.a2,f.a3].filter(Boolean),intensitaet:f.intensitaet,bild:f.bild,laender:f.laender||[],outOfStock:false};
     if (istTee) {
       const item = {...basis,sorte:f.sorte,params:{menge:f.menge||"3g",temp:(f.temp||"85")+"°C",ziehzeit:f.ziehzeit||"3 Min.",moeglicheMischungen:f.moeglicheMischungen||[{name:"pur",id:"m0"}]}};
@@ -716,6 +740,7 @@ function App() {
   };
 
   const loeschen = async (id, istTee) => {
+    if (!serverGeladen) return;
     if (istTee) { const neu=tees.filter(t=>t.id!==id); setTees(neu); await nachSpeichern("tees_speichern",{tees:neu},{tees:neu}); }
     else { const neu=kaffees.filter(k=>k.id!==id); setKaffees(neu); await nachSpeichern("kaffees_speichern",{kaffees:neu},{kaffees:neu}); }
   };
@@ -740,6 +765,7 @@ function App() {
   };
 
   const toggleOutOfStock = async (id, istTee) => {
+    if (!serverGeladen) return;
     if (istTee) {
       const neu = tees.map(t => t.id===id ? {...t, outOfStock:!t.outOfStock} : t);
       setTees(neu);
@@ -753,6 +779,7 @@ function App() {
 
   const bearbeiten = async (f, istTee) => {
     if (!f.name||!editItem) return;
+    if (!serverGeladen) { alert("Bitte warten – Daten werden noch geladen."); return; }
     const basis = {...editItem,name:f.name,subtitle:f.subtitle,aromen:[f.a1,f.a2,f.a3].filter(Boolean),intensitaet:f.intensitaet,bild:f.bild,laender:f.laender||[]};
     if (istTee) {
       const item = {...basis,sorte:f.sorte,params:{menge:f.menge||"3g",temp:(f.temp||"85")+"°C",ziehzeit:f.ziehzeit||"3 Min.",moeglicheMischungen:f.moeglicheMischungen||[{name:"pur",id:"m0"}]}};
