@@ -116,7 +116,7 @@ function dedupListe(liste) {
 
 function ladeCache(){try{const c=localStorage.getItem(CACHE_KEY);return c?JSON.parse(c):null;}catch{return null;}}
 function speichereCache(d){try{localStorage.setItem(CACHE_KEY,JSON.stringify(d));}catch{}}
-async function ladeVomServer(){const r=await fetch(API_URL);return r.json();}
+async function ladeVomServer(){const r=await fetch(API_URL+"?aktion=laden");return r.json();}
 async function poste(a,d){try{await fetch(API_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify({aktion:a,...d})});}catch{}}
 
 // ── Namen-Cache Funktionen ────
