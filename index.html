@@ -60,6 +60,31 @@ const DUMMY_BESTELLUNGEN = [
 const DEFAULT_SIRUPS = ["Haselnuss","Mandel","Karamell","Vanille"];
 const DUMMY_TASSEN = {1:12, 3:8, 5:3, 109:6, 116:2};
 
+// Standard-Mixe: Tee-Name → Array von Mischungen (ohne "pur", das wird automatisch ergänzt)
+const STANDARD_MIXE = {
+  "Pu-Erh":[{name:"Erde & Rauch",gesamt:"2.50",basis:"1.50",partner:[{name:"Chaga",g:"0.50"},{name:"Mate",g:"0.50"}]}],
+  "Taiwan Nr.18 Ruby":[{name:"Ruby Chai Berry",gesamt:"2.50",basis:"1.50",partner:[{name:"Vanilla Chai Black Tea",g:"0.62"},{name:"Waldbeere",g:"0.38"}]}],
+  "Kaga Boucha Genmai":[{name:"Gerösteter Morgen",gesamt:"2.50",basis:"1.75",partner:[{name:"Drachenbrunnentee",g:"0.50"},{name:"Lemongras",g:"0.25"}]}],
+  "Himalayan White Tea":[{name:"Alpine Blüte",gesamt:"2.50",basis:"2.00",partner:[{name:"Rose",g:"0.25"},{name:"Lavendel",g:"0.25"}]}],
+  "Vanilla Chai Black Tea":[{name:"Gewürz-Vanille Traum",gesamt:"2.50",basis:"1.50",partner:[{name:"Ras El-Hanout",g:"0.50"},{name:"Sanddorn Sahne",g:"0.50"}]}],
+  "Drachenbrunnentee":[{name:"Kastanien-Genmai",gesamt:"2.50",basis:"1.75",partner:[{name:"Kaga Boucha Genmai",g:"0.50"},{name:"Lemongras",g:"0.25"}]}],
+  "Marokkanische Minze":[{name:"Frische Oase",gesamt:"2.50",basis:"1.75",partner:[{name:"Lemongras",g:"0.50"},{name:"Katzenminze",g:"0.25"}]}],
+  "Lemongras":[{name:"Zitronen-Blau",gesamt:"2.50",basis:"2.00",partner:[{name:"Marokkanische Minze",g:"0.38"},{name:"Anchan",g:"0.12"}]}],
+  "Lavendel":[{name:"Beruhigende Blüte",gesamt:"2.50",basis:"1.75",partner:[{name:"Rose",g:"0.50"},{name:"Baldrian Wurzel",g:"0.25"}]}],
+  "Rose":[{name:"Rosen-Weiß",gesamt:"2.50",basis:"1.75",partner:[{name:"Lavendel",g:"0.38"},{name:"Himalayan White Tea",g:"0.37"}]}],
+  "Waldbeere":[{name:"Waldbeeren-Herz",gesamt:"2.50",basis:"1.50",partner:[{name:"Sanddorn Sahne",g:"0.62"},{name:"Taiwan Nr.18 Ruby",g:"0.38"}]}],
+  "Sanddorn Sahne":[{name:"Cremige Sanddorn-Beere",gesamt:"2.50",basis:"1.63",partner:[{name:"Waldbeere",g:"0.50"},{name:"Vanilla Chai Black Tea",g:"0.37"}]}],
+  "Anchan":[{name:"Blauer Florentiner",gesamt:"2.50",basis:"2.00",partner:[{name:"Rose",g:"0.25"},{name:"Lavendel",g:"0.25"}]}],
+  "Chaga":[{name:"Waldboden",gesamt:"2.50",basis:"1.75",partner:[{name:"Pu-Erh",g:"0.50"},{name:"Griechischer Bergtee",g:"0.25"}]}],
+  "Griechischer Bergtee":[{name:"Bergkräuter-Klar",gesamt:"2.50",basis:"1.75",partner:[{name:"Mate",g:"0.50"},{name:"Hopfenblüten",g:"0.25"}]}],
+  "Katzenminze":[{name:"Sanfte Minze",gesamt:"2.50",basis:"1.75",partner:[{name:"Marokkanische Minze",g:"0.50"},{name:"Hopfenblüten",g:"0.25"}]}],
+  "EuKaThy":[{name:"Klarer Atem",gesamt:"2.50",basis:"1.50",partner:[{name:"Marokkanische Minze",g:"0.50"},{name:"Lemongras",g:"0.50"}]}],
+  "Ras El-Hanout":[{name:"Nordafrikanischer Chai",gesamt:"2.50",basis:"1.75",partner:[{name:"Vanilla Chai Black Tea",g:"0.50"},{name:"Pu-Erh",g:"0.25"}]}],
+  "Baldrian Wurzel":[{name:"Schlafgarten",gesamt:"2.50",basis:"2.00",partner:[{name:"Lavendel",g:"0.25"},{name:"Hopfenblüten",g:"0.25"}]}],
+  "Hopfenblüten":[{name:"Bitter-Beruhigend",gesamt:"2.50",basis:"1.75",partner:[{name:"Baldrian Wurzel",g:"0.50"},{name:"Katzenminze",g:"0.25"}]}],
+  "Mate":[{name:"Mate-Erdverbund",gesamt:"2.50",basis:"1.50",partner:[{name:"Pu-Erh",g:"0.62"},{name:"Chaga",g:"0.38"}]}]
+};
+
 const W = (o=1) => `rgba(255,255,255,${o})`;
 const C = (o=1) => `rgba(232,217,188,${o})`;
 const GOLD = '#c9a96e';
@@ -159,7 +184,16 @@ function addiereNameZuCache(name){if(!name.trim())return;const n=ladeGespecherte
 function loescheNameAusCache(name){const n=ladeGespecherteNamen().filter(x=>x!==name);speichereNamen(n);}
 
 // ── Tee-Mischungen Default ────
-function gabeDefaultMischungen(tees){return tees.map(t=>{if(!t.params.moeglicheMischungen){t.params.moeglicheMischungen=[{name:"pur",id:"m0"}];}return t;});}
+function gabeDefaultMischungen(tees){return tees.map(t=>{
+  if(!t.params) t.params={};
+  if(!t.params.moeglicheMischungen) t.params.moeglicheMischungen=[{name:"pur",id:"m0"}];
+  // Standard-Mixe anwenden wenn Tee nur "pur" hat und in STANDARD_MIXE definiert ist
+  const sm = STANDARD_MIXE[t.name];
+  if(sm && t.params.moeglicheMischungen.length===1 && t.params.moeglicheMischungen[0].name==="pur"){
+    t.params.moeglicheMischungen = [{name:"pur",id:"m0"}, ...sm.map((m,i)=>({...m,id:"ms"+i}))];
+  }
+  return t;
+});}
 
 const INP_STYLE = {width:"100%",background:"rgba(40,18,4,0.5)",border:"1px solid rgba(160,120,50,0.3)",color:"#dccfa8",fontSize:15,padding:"11px 13px",borderRadius:3,outline:"none",boxSizing:"border-box"};
 
@@ -564,15 +598,56 @@ function Formular({istTee, onSpeichern, onAbbrechen, editData=null, editModus=fa
          )],
     // Tee-Mix Verwaltung
     istTee && div({style:{marginTop:14}},
-      div({style:{fontSize:10,color:"rgba(180,148,90,0.6)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:6,fontWeight:600}}, "Mögliche Mischungen"),
-      div({style:{display:"flex",flexWrap:"wrap",gap:5,marginBottom:6}},
-        ...f.moeglicheMischungen.map(m => span({key:m.id,style:{display:"flex",alignItems:"center",gap:4,fontSize:12,color:"#dccfa8",background:"rgba(80,45,10,0.5)",border:"1px solid rgba(160,120,50,0.35)",borderRadius:2,padding:"4px 8px"}},
-          m.name, m.name!=="pur"&&btn({onClick:()=>setF(p=>({...p,moeglicheMischungen:p.moeglicheMischungen.filter(x=>x.id!==m.id)})),style:{background:"none",border:"none",color:W(0.5),cursor:"pointer",fontSize:13,padding:"0 0 0 3px",lineHeight:1}}, "×")
+      div({style:{fontSize:10,color:"rgba(180,148,90,0.6)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:6,fontWeight:600}}, "Mischungen"),
+      div({style:{display:"flex",flexDirection:"column",gap:5,marginBottom:8}},
+        ...f.moeglicheMischungen.filter(m=>m.name!=="pur").map(m => div({key:m.id,style:{background:"rgba(80,45,10,0.5)",border:"1px solid rgba(160,120,50,0.35)",borderRadius:2,padding:"8px 10px"}},
+          div({style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:m.partner?4:0}},
+            span({style:{fontSize:13,color:"#dccfa8",fontWeight:600}}, m.name),
+            div({style:{display:"flex",alignItems:"center",gap:6}},
+              m.gesamt ? span({style:{fontSize:11,color:W(0.4)}}, m.gesamt+"g") : null,
+              btn({onClick:()=>setF(p=>({...p,moeglicheMischungen:p.moeglicheMischungen.filter(x=>x.id!==m.id)})),style:{background:"none",border:"none",color:"rgba(200,100,90,0.7)",cursor:"pointer",fontSize:13,padding:"0",lineHeight:1}}, "\u2715")
+            )
+          ),
+          m.partner ? div({style:{fontSize:11,color:W(0.4)}},
+            (f.name||"Basis")+" "+m.basis+"g",
+            ...m.partner.map(p => span({key:p.name}, " + "+p.name+" "+p.g+"g"))
+          ) : null
         ))
       ),
-      div({style:{display:"flex",gap:6}},
-        inp({style:{...INP_STYLE,flex:1,fontSize:13,padding:"8px 10px"},placeholder:"z.B. mit Minze\u2026",id:"neuer-mix"}),
-        btn({onClick:()=>{const el=document.getElementById("neuer-mix");const v=el?.value?.trim();if(v&&!f.moeglicheMischungen.some(m=>m.name===v)){setF(p=>({...p,moeglicheMischungen:[...p.moeglicheMischungen,{name:v,id:"m"+Date.now()}]}));el.value="";}},style:{background:"rgba(80,45,10,0.4)",border:"1px solid rgba(160,120,50,0.3)",color:"rgba(200,165,100,0.8)",fontSize:12,letterSpacing:"0.08em",textTransform:"uppercase",padding:"0 12px",cursor:"pointer",borderRadius:3,whiteSpace:"nowrap"}}, "+ Mix")
+      div({style:{background:"rgba(30,12,4,0.5)",border:"1px solid rgba(160,120,50,0.2)",borderRadius:3,padding:"10px"}},
+        div({style:{fontSize:10,color:W(0.35),letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:6}}, "Neue Mischung"),
+        div({style:{display:"flex",gap:5,marginBottom:5}},
+          inp({style:{...INP_STYLE,flex:2,fontSize:12,padding:"7px 9px"},placeholder:"Mischname",id:"mix-name"}),
+          inp({style:{...INP_STYLE,flex:1,fontSize:12,padding:"7px 9px"},placeholder:"Gesamt g",id:"mix-gesamt",type:"number",step:"0.01"})
+        ),
+        div({style:{display:"flex",gap:5,marginBottom:5,alignItems:"center"}},
+          span({style:{fontSize:11,color:W(0.35),whiteSpace:"nowrap"}}, (f.name||"Basis")),
+          inp({style:{...INP_STYLE,flex:1,fontSize:12,padding:"7px 9px"},placeholder:"g",id:"mix-basis",type:"number",step:"0.01"})
+        ),
+        div({style:{display:"flex",gap:5,marginBottom:5}},
+          inp({style:{...INP_STYLE,flex:2,fontSize:12,padding:"7px 9px"},placeholder:"Partner 1",id:"mix-p1"}),
+          inp({style:{...INP_STYLE,flex:1,fontSize:12,padding:"7px 9px"},placeholder:"g",id:"mix-p1g",type:"number",step:"0.01"})
+        ),
+        div({style:{display:"flex",gap:5,marginBottom:6}},
+          inp({style:{...INP_STYLE,flex:2,fontSize:12,padding:"7px 9px"},placeholder:"Partner 2 (optional)",id:"mix-p2"}),
+          inp({style:{...INP_STYLE,flex:1,fontSize:12,padding:"7px 9px"},placeholder:"g",id:"mix-p2g",type:"number",step:"0.01"})
+        ),
+        btn({onClick:()=>{
+          const n=document.getElementById("mix-name")?.value?.trim();
+          const g=document.getElementById("mix-gesamt")?.value?.trim();
+          const b=document.getElementById("mix-basis")?.value?.trim();
+          const p1=document.getElementById("mix-p1")?.value?.trim();
+          const p1g=document.getElementById("mix-p1g")?.value?.trim();
+          const p2=document.getElementById("mix-p2")?.value?.trim();
+          const p2g=document.getElementById("mix-p2g")?.value?.trim();
+          if(!n||!g||!b||!p1||!p1g) return;
+          const partner=[{name:p1,g:p1g}];
+          if(p2&&p2g) partner.push({name:p2,g:p2g});
+          if(!f.moeglicheMischungen.some(m=>m.name===n)){
+            setF(p=>({...p,moeglicheMischungen:[...p.moeglicheMischungen,{name:n,id:"m"+Date.now(),gesamt:g,basis:b,partner}]}));
+            ["mix-name","mix-gesamt","mix-basis","mix-p1","mix-p1g","mix-p2","mix-p2g"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
+          }
+        },style:{width:"100%",background:"rgba(80,45,10,0.4)",border:"1px solid rgba(160,120,50,0.3)",color:"rgba(200,165,100,0.8)",fontSize:12,letterSpacing:"0.08em",textTransform:"uppercase",padding:"8px 12px",cursor:"pointer",borderRadius:3}}, "+ Mischung hinzufügen")
       )
     ),
     div({style:{display:"flex",gap:8,marginTop:16}},
@@ -671,7 +746,7 @@ function ImageCropper({src, onSave, onAbbrechen}) {
 function App() {
   const cache = ladeCache();
   const [kaffees, setKaffees] = useState(dedupListe(cache?.kaffees||[]));
-  const [tees, setTees] = useState(dedupListe(cache?.tees||[]));
+  const [tees, setTees] = useState(gabeDefaultMischungen(dedupListe(cache?.tees||[])));
   const [bestellungen, setBestellungen] = useState(cache?.bestellungen||[]);
   const [tassen, setTassen] = useState(cache?.tassen||{});
   const [kommentare, setKommentare] = useState(cache?.kommentare||[]);
@@ -707,7 +782,7 @@ function App() {
     try {
       const d = await ladeVomServer();
       const dk = d.kaffees?.length>0 ? dedupListe(d.kaffees) : null;
-      const dt = d.tees?.length>0 ? dedupListe(d.tees) : null;
+      const dt = d.tees?.length>0 ? gabeDefaultMischungen(dedupListe(d.tees)) : null;
       // Server-Anzahl merken für Datenverlust-Schutz
       serverAnzahl.current = {kaffees: dk?dk.length:0, tees: dt?dt.length:0};
       if(dk) setKaffees(dk);
@@ -979,7 +1054,16 @@ function App() {
                 div({style:{fontSize:10,color:"rgba(180,148,90,0.55)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:6,fontWeight:600}}, "Mischung wählen"),
                 div({style:{display:"flex",flexWrap:"wrap",gap:6}},
                   ...bestellModal.item.params.moeglicheMischungen.map(m => btn({key:m.id,onClick:()=>setGewaehlteMischung(m.name),style:{background:gewaehlteMischung===m.name?"rgba(212,180,131,0.2)":"rgba(40,18,4,0.5)",border:"1px solid "+(gewaehlteMischung===m.name?"rgba(212,180,131,0.5)":"rgba(160,120,50,0.25)"),color:gewaehlteMischung===m.name?SAND:"rgba(200,165,100,0.6)",fontSize:12,padding:"6px 12px",cursor:"pointer",borderRadius:3}}, m.name))
-                )
+                ),
+                (()=>{
+                  const sel = gewaehlteMischung && bestellModal.item.params.moeglicheMischungen.find(m=>m.name===gewaehlteMischung);
+                  if(!sel||!sel.partner) return null;
+                  return div({style:{marginTop:8,padding:"8px 10px",background:"rgba(20,8,2,0.5)",borderRadius:3,border:"1px solid rgba(160,120,50,0.15)",fontSize:11,color:W(0.4)}},
+                    span({style:{color:SAND}}, sel.gesamt+"g"), " \u2014 ",
+                    bestellModal.item.name+" "+sel.basis+"g",
+                    ...sel.partner.map(p => span({key:p.name}, " + "+p.name+" "+p.g+"g"))
+                  );
+                })()
               ) : null,
               div({style:{fontSize:10,color:"rgba(180,148,90,0.55)",letterSpacing:"0.2em",textTransform:"uppercase",display:"block",marginBottom:5,fontWeight:600}}, "Name (optional)"),
               gespeicherteNamen.length > 0 ? div({style:{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}},
@@ -1096,9 +1180,18 @@ function App() {
                     ["Temp.", p.temp],
                     ["Ziehzeit", p.ziehzeit]
                   ];
+                  // Mix-Details finden wenn Bestellung einen Mix hat
+                  const mixDetail = b.zubereitung && p.moeglicheMischungen ? p.moeglicheMischungen.find(m=>m.name===b.zubereitung) : null;
                   return div({style:{margin:"0 15px 12px",padding:"10px 12px",background:"rgba(20,8,2,0.6)",borderRadius:3,border:"1px solid rgba(160,120,50,0.2)"}},
                     div({style:{fontSize:10,color:"rgba(180,148,90,0.55)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8,fontWeight:700}},
                       "REZEPT"+(b.zubereitung?" \u2014 "+b.zubereitung.toUpperCase():"")),
+                    mixDetail&&mixDetail.partner ? div({style:{marginBottom:8,padding:"6px 8px",background:"rgba(160,120,50,0.08)",borderRadius:2,border:"1px solid rgba(160,120,50,0.12)"}},
+                      div({style:{fontSize:10,color:"rgba(180,148,90,0.5)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}, "MIX-ZUSAMMENSETZUNG \u00b7 "+mixDetail.gesamt+"g"),
+                      div({style:{fontSize:12,color:"#e8d0a0"}},
+                        span({style:{fontWeight:700}}, item.name), " "+mixDetail.basis+"g",
+                        ...mixDetail.partner.map(mp => span({key:mp.name,style:{color:W(0.6)}}, " + "+mp.name+" "+mp.g+"g"))
+                      )
+                    ) : null,
                     div({style:{display:"grid",gridTemplateColumns:"auto 1fr",gap:"6px 14px"}},
                       ...rows.filter(([,v])=>v).flatMap(([k,v])=>[
                         div({style:{fontSize:10,color:"rgba(180,148,90,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",alignSelf:"center"}}, k),
