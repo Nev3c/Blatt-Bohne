@@ -240,12 +240,12 @@ function QrModal({onSchliessen}) {
     const img = new Image(); img.crossOrigin = "anonymous";
     img.onload = () => { ctx.fillStyle="#1a0c04"; ctx.fillRect(0,0,s,s); ctx.drawImage(img,0,0,s,s); };
     img.onerror = () => { ctx.fillStyle="#1a0c04"; ctx.fillRect(0,0,s,s); ctx.fillStyle=W(0.5); ctx.font="12px sans-serif"; ctx.textAlign="center"; ctx.fillText("QR nicht verfügbar",s/2,s/2); };
-    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=https://heissgetraenke.netlify.app&color=d4b483&bgcolor=1a0c04&margin=2`;
+    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=https://nev3c.github.io/Blatt-Bohne/&color=d4b483&bgcolor=1a0c04&margin=2`;
   }, []);
   return div({onClick:onSchliessen,style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:24},className:"fade-in"},
     div({onClick:e=>e.stopPropagation(),style:{background:"#251508",border:"1px solid rgba(160,120,50,0.4)",borderRadius:4,padding:"24px 20px",maxWidth:290,width:"100%",textAlign:"center"}},
-      div({style:{fontFamily:"'Caveat',cursive",fontSize:24,color:"#fff",marginBottom:2}}, "Dennis’ Heißgetränke"),
-      div({style:{fontSize:11,color:"rgba(180,148,90,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:16}}, "heissgetraenke.netlify.app"),
+      div({style:{fontFamily:"'Caveat',cursive",fontSize:24,color:"#fff",marginBottom:2}}, "Blatt & Bohne"),
+      div({style:{fontSize:11,color:"rgba(180,148,90,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:16}}, "nev3c.github.io/Blatt-Bohne"),
       div({style:{display:"inline-block",padding:8,border:"1px solid rgba(160,120,50,0.3)",borderRadius:3,marginBottom:14}},
         h('canvas', {ref, style:{display:"block",width:180,height:180}})
       ),
