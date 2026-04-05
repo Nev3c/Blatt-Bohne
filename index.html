@@ -29,6 +29,7 @@
     @keyframes drehen{to{transform:rotate(360deg)}}
     @keyframes slide-up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
     @keyframes fade-in{from{opacity:0}to{opacity:1}}
+    @keyframes check-done{0%{opacity:1;transform:scale(1)}30%{background:rgba(60,160,60,0.15);border-color:rgba(80,180,80,0.4)}70%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(0.95);max-height:0;padding:0;margin:0;overflow:hidden}}
     @keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.4)}100%{transform:scale(1)}}
     .slide-up{animation:slide-up .22s ease}
     .fade-in{animation:fade-in .2s ease}
@@ -52,10 +53,11 @@ const CACHE_KEY = "dennis_v19";
 const NAMES_CACHE_KEY = "blatt_bohne_names";
 
 const DUMMY_BESTELLUNGEN = [
-  {gast:"Anna",getraenk:"El Capitano",typ:"Kaffee",zubereitung:"Espresso",uhrzeit:"10:24"},
-  {gast:"Max",getraenk:"Marokkanische Minze",typ:"Tee",zubereitung:null,uhrzeit:"10:31"},
-  {gast:"Gast",getraenk:"Forest B.",typ:"Kaffee",zubereitung:"Cappuccino",uhrzeit:"10:45"},
+  {gast:"Anna",getraenk:"El Capitano",typ:"Kaffee",zubereitung:"Espresso",sirup:"Haselnuss",uhrzeit:"10:24"},
+  {gast:"Max",getraenk:"Marokkanische Minze",typ:"Tee",zubereitung:null,sirup:null,uhrzeit:"10:31"},
+  {gast:"Gast",getraenk:"Forest B.",typ:"Kaffee",zubereitung:"Cappuccino",sirup:null,uhrzeit:"10:45"},
 ];
+const DEFAULT_SIRUPS = ["Haselnuss","Mandel","Karamell","Vanille"];
 const DUMMY_TASSEN = {1:12, 3:8, 5:3, 109:6, 116:2};
 
 const W = (o=1) => `rgba(255,255,255,${o})`;
@@ -456,8 +458,9 @@ function Formular({istTee, onSpeichern, onAbbrechen, editData=null, editModus=fa
     dosis:editData.params?.dosis||"",temp:parseFloat(editData.params?.temp)||"",
     zeit:editData.params?.zeit||"",ratio:editData.params?.ratio||"1:2",mahlgrad:String(editData.params?.mahlgrad||6),
     menge:editData.params?.menge||"3g",ziehzeit:editData.params?.ziehzeit||"3 Min.",
-    bild:editData.bild||null,laender:editData.laender||[]
-  } : {name:"",subtitle:"",roest:"Mitteldunkel",sorte:"Schwarzer Tee",typ:"Blend",a1:"",a2:"",a3:"",intensitaet:3,dosis:"",temp:istTee?"90":"92",zeit:"",ratio:"1:2",mahlgrad:"6",menge:"3g",ziehzeit:"3 Min.",bild:null,laender:[]};
+    bild:editData.bild||null,laender:editData.laender||[],
+    moeglicheMischungen:editData.params?.moeglicheMischungen||[{name:"pur",id:"m0"}]
+  } : {name:"",subtitle:"",roest:"Mitteldunkel",sorte:"Schwarzer Tee",typ:"Blend",a1:"",a2:"",a3:"",intensitaet:3,dosis:"",temp:istTee?"90":"92",zeit:"",ratio:"1:2",mahlgrad:"6",menge:"3g",ziehzeit:"3 Min.",bild:null,laender:[],moeglicheMischungen:[{name:"pur",id:"m0"}]};
   
   const [f, setF] = useState(init);
   const s = (k,v) => setF(p => ({...p,[k]:v}));
@@ -526,6 +529,19 @@ function Formular({istTee, onSpeichern, onAbbrechen, editData=null, editModus=fa
            inp({style:{...INP_STYLE,flex:1},value:f.ratio,onChange:ev=>s("ratio",ev.target.value),placeholder:"1:2"}),
            inp({style:{...INP_STYLE,flex:1},value:f.mahlgrad,onChange:ev=>s("mahlgrad",ev.target.value),placeholder:"18  (Skala 1–30)"})
          )],
+    // Tee-Mix Verwaltung
+    istTee && div({style:{marginTop:14}},
+      div({style:{fontSize:10,color:"rgba(180,148,90,0.6)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:6,fontWeight:600}}, "Mögliche Mischungen"),
+      div({style:{display:"flex",flexWrap:"wrap",gap:5,marginBottom:6}},
+        ...f.moeglicheMischungen.map(m => span({key:m.id,style:{display:"flex",alignItems:"center",gap:4,fontSize:12,color:"#dccfa8",background:"rgba(80,45,10,0.5)",border:"1px solid rgba(160,120,50,0.35)",borderRadius:2,padding:"4px 8px"}},
+          m.name, m.name!=="pur"&&btn({onClick:()=>setF(p=>({...p,moeglicheMischungen:p.moeglicheMischungen.filter(x=>x.id!==m.id)})),style:{background:"none",border:"none",color:W(0.5),cursor:"pointer",fontSize:13,padding:"0 0 0 3px",lineHeight:1}}, "×")
+        ))
+      ),
+      div({style:{display:"flex",gap:6}},
+        inp({style:{...INP_STYLE,flex:1,fontSize:13,padding:"8px 10px"},placeholder:"z.B. mit Minze\u2026",id:"neuer-mix"}),
+        btn({onClick:()=>{const el=document.getElementById("neuer-mix");const v=el?.value?.trim();if(v&&!f.moeglicheMischungen.some(m=>m.name===v)){setF(p=>({...p,moeglicheMischungen:[...p.moeglicheMischungen,{name:v,id:"m"+Date.now()}]}));el.value="";}},style:{background:"rgba(80,45,10,0.4)",border:"1px solid rgba(160,120,50,0.3)",color:"rgba(200,165,100,0.8)",fontSize:12,letterSpacing:"0.08em",textTransform:"uppercase",padding:"0 12px",cursor:"pointer",borderRadius:3,whiteSpace:"nowrap"}}, "+ Mix")
+      )
+    ),
     div({style:{display:"flex",gap:8,marginTop:16}},
       btn({onClick:onAbbrechen,style:{flex:1,background:"transparent",border:"1px solid rgba(160,120,50,0.3)",color:"rgba(180,148,90,0.5)",fontSize:13,letterSpacing:"0.1em",textTransform:"uppercase",padding:"13px",cursor:"pointer",borderRadius:3}}, "Abbrechen"),
       btn({onClick:()=>onSpeichern(f),style:{flex:2,background:SAND,border:"none",color:BROWN,fontSize:13,letterSpacing:"0.1em",textTransform:"uppercase",padding:"13px",cursor:"pointer",borderRadius:3,fontWeight:700}}, editModus?"Speichern ✓":"Eintragen")
@@ -629,6 +645,10 @@ function App() {
   const [serverGeladen, setServerGeladen] = useState(!!cache);
   const [gastName, setGastName] = useState("");
   const [rezeptOffen, setRezeptOffen] = useState(null);
+  const [fertigId, setFertigId] = useState(null);
+  const [sirups, setSirups] = useState(cache?.sirups || DEFAULT_SIRUPS);
+  const [gewaehlterSirup, setGewaehlterSirup] = useState(null);
+  const [gewaehlteMischung, setGewaehlteMischung] = useState(null);
 
   const serverLaden = useCallback(async () => {
     try {
@@ -642,6 +662,7 @@ function App() {
       if(d.bestellungen?.length>0) setBestellungen(d.bestellungen);
       if(d.tassen&&Object.keys(d.tassen).length>0) setTassen(d.tassen);
       if(d.kommentare?.length>0) setKommentare(d.kommentare);
+      if(d.sirups?.length>0) setSirups(d.sirups);
       // Save deduplicated data to cache
       speichereCache({
         kaffees: dk || [],
@@ -649,6 +670,7 @@ function App() {
         bestellungen: d.bestellungen || [],
         tassen: d.tassen || {},
         kommentare: d.kommentare || [],
+        sirups: d.sirups?.length>0 ? d.sirups : sirups,
       });
       setServerGeladen(true);
     } catch { setServerGeladen(true); }
@@ -656,24 +678,26 @@ function App() {
 
   useEffect(() => { serverLaden(); }, []);
 
-  // Echtzeit-Update: Im Admin-Modus alle 10 Sek. neue Bestellungen laden
+  // Echtzeit-Update: Im Admin-Modus oder auf dem Bestellungen-Tab alle 10 Sek. laden
   useEffect(() => {
-    if (!isAdmin || testModus) return;
+    if (testModus) return;
+    if (!isAdmin && tab !== "bestellungen") return;
     const intervall = setInterval(async () => {
       try {
         const d = await ladeVomServer();
-        if (d.bestellungen?.length > 0) setBestellungen(d.bestellungen);
+        if (d.bestellungen) setBestellungen(d.bestellungen);
         if (d.tassen && Object.keys(d.tassen).length > 0) setTassen(d.tassen);
       } catch {}
     }, 10000);
     return () => clearInterval(intervall);
-  }, [isAdmin, testModus]);
+  }, [isAdmin, testModus, tab]);
 
+  const cacheAlles = (overrides={}) => speichereCache({kaffees,tees,bestellungen,tassen,kommentare,sirups,...overrides});
   const postiereWennEcht = async (a,d) => { if(testModus)return; await poste(a,d); };
   const nachSpeichern = async (aktion, daten, neuerState) => {
     setSpeichert(true);
     await postiereWennEcht(aktion, daten);
-    speichereCache({kaffees,tees,bestellungen,tassen,kommentare,...neuerState});
+    cacheAlles(neuerState);
     setSpeichert(false);
   };
 
@@ -681,7 +705,7 @@ function App() {
     if (!f.name) return;
     const basis = {id:Date.now(),name:f.name,subtitle:f.subtitle,aromen:[f.a1,f.a2,f.a3].filter(Boolean),intensitaet:f.intensitaet,bild:f.bild,laender:f.laender||[],outOfStock:false};
     if (istTee) {
-      const item = {...basis,sorte:f.sorte,params:{menge:f.menge||"3g",temp:(f.temp||"85")+"°C",ziehzeit:f.ziehzeit||"3 Min."}};
+      const item = {...basis,sorte:f.sorte,params:{menge:f.menge||"3g",temp:(f.temp||"85")+"°C",ziehzeit:f.ziehzeit||"3 Min.",moeglicheMischungen:f.moeglicheMischungen||[{name:"pur",id:"m0"}]}};
       const neu = [...tees,item]; setTees(neu); setFormularOffen(false);
       await nachSpeichern("tees_speichern",{tees:neu},{tees:neu});
     } else {
@@ -731,7 +755,7 @@ function App() {
     if (!f.name||!editItem) return;
     const basis = {...editItem,name:f.name,subtitle:f.subtitle,aromen:[f.a1,f.a2,f.a3].filter(Boolean),intensitaet:f.intensitaet,bild:f.bild,laender:f.laender||[]};
     if (istTee) {
-      const item = {...basis,sorte:f.sorte,params:{menge:f.menge||"3g",temp:(f.temp||"85")+"°C",ziehzeit:f.ziehzeit||"3 Min."}};
+      const item = {...basis,sorte:f.sorte,params:{menge:f.menge||"3g",temp:(f.temp||"85")+"°C",ziehzeit:f.ziehzeit||"3 Min.",moeglicheMischungen:f.moeglicheMischungen||[{name:"pur",id:"m0"}]}};
       const neu = tees.map(t=>t.id===editItem.id?item:t); setTees(neu); setEditItem(null);
       await nachSpeichern("tees_speichern",{tees:neu},{tees:neu});
     } else {
@@ -750,31 +774,39 @@ function App() {
     const {item,istTee} = bestellModal;
     const name = gastName.trim() || "Gast";
     if (name !== "Gast") addiereNameZuCache(name);
-    const b = {gast:name,getraenk:item.name,typ:istTee?"Tee":"Kaffee",zubereitung:zubereitung||null,uhrzeit:new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})};
+    const mixName = istTee&&gewaehlteMischung&&gewaehlteMischung!=="pur"?gewaehlteMischung:null;
+    const b = {gast:name,getraenk:item.name,typ:istTee?"Tee":"Kaffee",zubereitung:istTee?mixName:(zubereitung||null),sirup:(!istTee&&gewaehlterSirup)||null,uhrzeit:new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})};
     const neuB = [...bestellungen,b];
     const neuT = {...tassen,[item.id]:(tassen[item.id]||0)+1};
-    setBestellungen(neuB); setTassen(neuT); setBestellModal(null); setBestaetigt(b); setGastName(""); setBestellSchritt(0); setGewaehlteZubereitung(null);
+    setBestellungen(neuB); setTassen(neuT); setBestellModal(null); setBestaetigt(b); setGastName(""); setBestellSchritt(0); setGewaehlteZubereitung(null); setGewaehlterSirup(null); setGewaehlteMischung(null);
     await poste("bestellung_hinzufuegen",{bestellung:b});
     if (!testModus) await poste("tassen_speichern",{tassen:neuT});
-    speichereCache({kaffees,tees,bestellungen:neuB,tassen:neuT,kommentare});
+    cacheAlles({bestellungen:neuB,tassen:neuT});
   };
 
-  const leereBestellungen = async () => {
-    setBestellungen([]);
-    if (!testModus) await poste("bestellungen_leeren",{});
-    speichereCache({kaffees,tees,bestellungen:[],tassen,kommentare});
+  const bestellungFertig = (index) => {
+    setFertigId(index);
+    setTimeout(async () => {
+      const b = bestellungen[index];
+      const neuB = bestellungen.filter((_, i) => i !== index);
+      setBestellungen(neuB);
+      setFertigId(null);
+      setRezeptOffen(null);
+      cacheAlles({bestellungen:neuB});
+      if (!testModus) await poste("bestellung_loeschen",{bestellung:b});
+    }, 1200);
   };
 
   const kommentarHinzufuegen = async (itemId,text,name) => {
     const k = {id:Date.now(),itemId,text,name:name||"Gast",datum:new Date().toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"})};
     const neu = [...kommentare,k]; setKommentare(neu);
-    speichereCache({kaffees,tees,bestellungen,tassen,kommentare:neu});
+    cacheAlles({kommentare:neu});
     if (!testModus) await poste("kommentar_hinzufuegen",{kommentar:k});
   };
 
   const kommentarLoeschen = async kId => {
     const neu = kommentare.filter(k=>k.id!==kId); setKommentare(neu);
-    speichereCache({kaffees,tees,bestellungen,tassen,kommentare:neu});
+    cacheAlles({kommentare:neu});
     if (!testModus) await poste("kommentar_loeschen",{kId});
   };
 
@@ -841,11 +873,26 @@ function App() {
                   span(null,z), span({style:{color:W(0.3)}},"→")
                 ))
               ),
-              btn({onClick:()=>{setBestellModal(null);setGastName("");setBestellSchritt(0);setGewaehlteZubereitung(null);},style:{width:"100%",background:"transparent",border:"none",color:"rgba(160,120,50,0.4)",fontSize:12,letterSpacing:"0.12em",textTransform:"uppercase",padding:"13px",cursor:"pointer",marginTop:4}}, "Abbrechen")
+              btn({onClick:()=>{setBestellModal(null);setGastName("");setBestellSchritt(0);setGewaehlteZubereitung(null);setGewaehlterSirup(null);setGewaehlteMischung(null);},style:{width:"100%",background:"transparent",border:"none",color:"rgba(160,120,50,0.4)",fontSize:12,letterSpacing:"0.12em",textTransform:"uppercase",padding:"13px",cursor:"pointer",marginTop:4}}, "Abbrechen")
             )
           // Step 1 (Kaffee after Zubereitung) or Tee directly: Name + Bestellen
           : div(null,
               gewaehlteZubereitung ? div({style:{fontSize:13,color:SAND,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:12,padding:"8px 12px",background:"rgba(61,32,16,0.3)",border:"1px solid rgba(160,120,50,0.25)",borderRadius:3,display:"inline-block"}}, gewaehlteZubereitung) : null,
+              // Sirup-Auswahl (nur Kaffee)
+              !bestellModal.istTee ? div({style:{marginBottom:14}},
+                div({style:{fontSize:10,color:"rgba(180,148,90,0.55)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:6,fontWeight:600}}, "Sirup (optional)"),
+                div({style:{display:"flex",flexWrap:"wrap",gap:6}},
+                  btn({onClick:()=>setGewaehlterSirup(null),style:{background:!gewaehlterSirup?"rgba(212,180,131,0.2)":"rgba(40,18,4,0.5)",border:"1px solid "+(!gewaehlterSirup?"rgba(212,180,131,0.5)":"rgba(160,120,50,0.25)"),color:!gewaehlterSirup?SAND:"rgba(200,165,100,0.6)",fontSize:12,padding:"6px 12px",cursor:"pointer",borderRadius:3}}, "Kein Sirup"),
+                  ...sirups.map(s => btn({key:s,onClick:()=>setGewaehlterSirup(s),style:{background:gewaehlterSirup===s?"rgba(212,180,131,0.2)":"rgba(40,18,4,0.5)",border:"1px solid "+(gewaehlterSirup===s?"rgba(212,180,131,0.5)":"rgba(160,120,50,0.25)"),color:gewaehlterSirup===s?SAND:"rgba(200,165,100,0.6)",fontSize:12,padding:"6px 12px",cursor:"pointer",borderRadius:3}}, s))
+                )
+              ) : null,
+              // Tee-Mix Auswahl (nur Tee, nur wenn mehr als "pur")
+              bestellModal.istTee && bestellModal.item.params?.moeglicheMischungen?.length > 1 ? div({style:{marginBottom:14}},
+                div({style:{fontSize:10,color:"rgba(180,148,90,0.55)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:6,fontWeight:600}}, "Mischung wählen"),
+                div({style:{display:"flex",flexWrap:"wrap",gap:6}},
+                  ...bestellModal.item.params.moeglicheMischungen.map(m => btn({key:m.id,onClick:()=>setGewaehlteMischung(m.name),style:{background:gewaehlteMischung===m.name?"rgba(212,180,131,0.2)":"rgba(40,18,4,0.5)",border:"1px solid "+(gewaehlteMischung===m.name?"rgba(212,180,131,0.5)":"rgba(160,120,50,0.25)"),color:gewaehlteMischung===m.name?SAND:"rgba(200,165,100,0.6)",fontSize:12,padding:"6px 12px",cursor:"pointer",borderRadius:3}}, m.name))
+                )
+              ) : null,
               div({style:{fontSize:10,color:"rgba(180,148,90,0.55)",letterSpacing:"0.2em",textTransform:"uppercase",display:"block",marginBottom:5,fontWeight:600}}, "Name (optional)"),
               gespeicherteNamen.length > 0 ? div({style:{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}},
                 ...gespeicherteNamen.map(n => div({key:n,style:{display:"flex",alignItems:"center",gap:0}},
@@ -855,7 +902,7 @@ function App() {
               ) : null,
               inp({style:{...INP_STYLE,marginBottom:14,background:"rgba(40,18,4,0.5)",border:"1px solid rgba(160,120,50,0.3)",color:"#dccfa8"},value:gastName,onChange:e=>setGastName(e.target.value),placeholder:"z.B. Anna"}),
               div({style:{display:"flex",gap:8}},
-                btn({onClick:()=>{if(!bestellModal.istTee&&bestellSchritt===1){setBestellSchritt(0);setGewaehlteZubereitung(null);}else{setBestellModal(null);setGastName("");setBestellSchritt(0);setGewaehlteZubereitung(null);}},style:{flex:1,background:"transparent",border:"1px solid rgba(255,255,255,0.18)",color:W(0.4),fontSize:13,letterSpacing:"0.1em",textTransform:"uppercase",padding:"14px",cursor:"pointer",borderRadius:3}}, "Zurück"),
+                btn({onClick:()=>{if(!bestellModal.istTee&&bestellSchritt===1){setBestellSchritt(0);setGewaehlteZubereitung(null);setGewaehlterSirup(null);setGewaehlteMischung(null);}else{setBestellModal(null);setGastName("");setBestellSchritt(0);setGewaehlteZubereitung(null);setGewaehlterSirup(null);setGewaehlteMischung(null);}},style:{flex:1,background:"transparent",border:"1px solid rgba(255,255,255,0.18)",color:W(0.4),fontSize:13,letterSpacing:"0.1em",textTransform:"uppercase",padding:"14px",cursor:"pointer",borderRadius:3}}, "Zurück"),
                 btn({onClick:()=>bestellungAbschliessen(gewaehlteZubereitung),style:{flex:2,background:SAND,border:"none",color:BROWN,fontFamily:"'Caveat',cursive",fontSize:22,fontWeight:700,padding:"8px",cursor:"pointer",borderRadius:3}}, "Bestellen")
               )
             )
@@ -867,6 +914,7 @@ function App() {
       div({style:{background:"#251508",border:"1px solid rgba(160,120,50,0.4)",borderRadius:4,padding:"32px 24px",textAlign:"center",maxWidth:280,width:"100%"}},
         div({style:{fontFamily:"'Caveat',cursive",fontSize:28,color:SAND,marginBottom:6}}, bestaetigt.getraenk),
         bestaetigt.zubereitung && div({style:{fontSize:13,color:"rgba(180,148,90,0.55)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:4}}, bestaetigt.zubereitung),
+        bestaetigt.sirup && div({style:{fontSize:12,color:"rgba(180,148,90,0.45)",letterSpacing:"0.08em",marginBottom:4}}, bestaetigt.sirup+" Sirup"),
         div({style:{fontSize:13,color:W(0.35),marginBottom:22}}, "für "+bestaetigt.gast),
         btn({onClick:()=>setBestaetigt(null),style:{background:"transparent",border:"1px solid rgba(255,255,255,0.2)",color:W(0.4),fontSize:12,letterSpacing:"0.15em",textTransform:"uppercase",padding:"10px 26px",cursor:"pointer",borderRadius:3}}, "Schließen")
       )
@@ -895,7 +943,7 @@ function App() {
     ),
     // Tabs
     div({style:{display:"flex",borderBottom:"1px solid rgba(180,140,80,0.3)",borderTop:"1px solid rgba(180,140,80,0.15)",background:"rgba(8,4,1,0.7)",overflowX:"auto",WebkitOverflowScrolling:"touch"}},
-      ...[["kaffee","Kaffee"],["tee","Tee"],...(isAdmin?[["bestellungen","Bestellungen"+(bestellungen.length>0?` (${bestellungen.length})`:"")]]:[])]
+      ...[["kaffee","Kaffee"],["tee","Tee"],["bestellungen","Bestellungen"+(bestellungen.length>0?` (${bestellungen.length})`:"")]]
         .map(([id,label]) => btn({key:id,onClick:()=>{setTab(id);setFormularOffen(false);setFilterAroma(null);setFilterOffen(false);setSortAsc(false);if(id!=="tee")setFilterTeeSorte(null);},style:tabSt(id)}, label))
     ),
 
@@ -919,28 +967,30 @@ function App() {
             ),
             div({style:{flex:1}}),
             btn({onClick:serverLaden,style:{fontSize:12,background:"rgba(40,18,4,0.5)",border:"1px solid rgba(160,120,50,0.25)",color:"rgba(200,165,100,0.7)",letterSpacing:"0.08em",textTransform:"uppercase",padding:"9px 12px",cursor:"pointer",borderRadius:3}}, "Aktualisieren"),
-            bestellungen.length>0 ? btn({onClick:leereBestellungen,style:{fontSize:12,background:"rgba(40,18,4,0.5)",border:"1px solid rgba(160,60,60,0.35)",color:"rgba(200,100,90,0.75)",letterSpacing:"0.08em",textTransform:"uppercase",padding:"9px 12px",cursor:"pointer",borderRadius:3}}, "Leeren") : null,
-            btn({onClick:()=>{setTassen({});if(!testModus)poste("tassen_speichern",{tassen:{}});speichereCache({kaffees,tees,bestellungen,tassen:{},kommentare});},style:{fontSize:12,background:"rgba(40,18,4,0.5)",border:"1px solid rgba(160,120,50,0.25)",color:"rgba(200,165,100,0.5)",letterSpacing:"0.08em",textTransform:"uppercase",padding:"9px 12px",cursor:"pointer",borderRadius:3}}, h(CupIcon,{size:14}), " Reset"),
-            btn({onClick:deduplizieren,style:{fontSize:12,background:"rgba(40,18,4,0.5)",border:"1px solid rgba(160,120,50,0.25)",color:"rgba(200,165,100,0.7)",letterSpacing:"0.08em",textTransform:"uppercase",padding:"9px 12px",cursor:"pointer",borderRadius:3}}, "\u2728 Duplikate")
+            isAdmin ? btn({onClick:()=>{setTassen({});if(!testModus)poste("tassen_speichern",{tassen:{}});cacheAlles({tassen:{}});},style:{fontSize:12,background:"rgba(40,18,4,0.5)",border:"1px solid rgba(160,120,50,0.25)",color:"rgba(200,165,100,0.5)",letterSpacing:"0.08em",textTransform:"uppercase",padding:"9px 12px",cursor:"pointer",borderRadius:3}}, h(CupIcon,{size:14}), " Reset") : null,
+            isAdmin ? btn({onClick:deduplizieren,style:{fontSize:12,background:"rgba(40,18,4,0.5)",border:"1px solid rgba(160,120,50,0.25)",color:"rgba(200,165,100,0.7)",letterSpacing:"0.08em",textTransform:"uppercase",padding:"9px 12px",cursor:"pointer",borderRadius:3}}, "\u2728 Duplikate") : null
           ),
           bestellungen.length === 0
             ? div({style:{textAlign:"center",padding:"50px 20px",color:"rgba(160,120,50,0.3)",fontSize:13,letterSpacing:"0.1em",textTransform:"uppercase"}}, "Noch keine Bestellungen")
-            : div(null, ...bestellungen.map((b,i) => div({key:i,style:{background:"rgba(40,18,4,0.3)",border:"1px solid rgba(160,120,50,0.2)",borderRadius:3,marginBottom:8,overflow:"hidden"}},
+            : div(null, ...bestellungen.map((b,i) => div({key:i,style:{background:fertigId===i?"rgba(40,80,40,0.15)":"rgba(40,18,4,0.3)",border:`1px solid ${fertigId===i?"rgba(80,180,80,0.3)":"rgba(160,120,50,0.2)"}`,borderRadius:3,marginBottom:8,overflow:"hidden",transition:"all 0.4s ease",animation:fertigId===i?"check-done 1.2s ease forwards":"none"}},
                 div({style:{padding:"12px 15px",display:"flex",justifyContent:"space-between",alignItems:"center"}},
-                  div(null,
-                    div({style:{fontFamily:"'Caveat',cursive",fontSize:20,color:SAND,fontWeight:700}}, b.getraenk),
+                  div({style:{flex:1,minWidth:0}},
+                    div({style:{fontFamily:"'Caveat',cursive",fontSize:20,color:fertigId===i?"rgba(120,200,120,0.8)":SAND,fontWeight:700,transition:"color 0.3s",textDecoration:fertigId===i?"line-through":"none"}}, b.getraenk),
                     div({style:{fontSize:11,color:"rgba(180,148,90,0.5)",letterSpacing:"0.06em",textTransform:"uppercase",marginTop:3}},
-                      (b.zubereitung?b.zubereitung+" \u2014 ":"")+b.typ
+                      (b.zubereitung?b.zubereitung+" \u2014 ":"")+(b.sirup?b.sirup+" Sirup \u2014 ":"")+b.typ
                     ),
                     div({style:{fontSize:11,color:"rgba(160,128,72,0.4)",marginTop:2}}, b.uhrzeit)
                   ),
-                  div({style:{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6,flexShrink:0,marginLeft:8}},
-                    div({style:{fontFamily:"'Caveat',cursive",fontSize:18,color:"rgba(200,165,100,0.65)",fontWeight:600}}, b.gast),
-                    btn({onClick:()=>setRezeptOffen(rezeptOffen===i?null:i),
-                      style:{fontSize:10,background:"rgba(40,18,4,0.5)",border:"1px solid rgba(160,120,50,0.2)",
-                        color:"rgba(180,148,90,0.5)",padding:"3px 8px",cursor:"pointer",
-                        borderRadius:2,letterSpacing:"0.1em",textTransform:"uppercase"}},
-                      rezeptOffen===i?"\u25b2 Rezept":"\u25bc Rezept")
+                  div({style:{display:"flex",alignItems:"center",gap:8,flexShrink:0,marginLeft:8}},
+                    div({style:{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}},
+                      div({style:{fontFamily:"'Caveat',cursive",fontSize:18,color:"rgba(200,165,100,0.65)",fontWeight:600}}, b.gast),
+                      btn({onClick:()=>setRezeptOffen(rezeptOffen===i?null:i),
+                        style:{fontSize:10,background:"rgba(40,18,4,0.5)",border:"1px solid rgba(160,120,50,0.2)",
+                          color:"rgba(180,148,90,0.5)",padding:"3px 8px",cursor:"pointer",
+                          borderRadius:2,letterSpacing:"0.1em",textTransform:"uppercase"}},
+                        rezeptOffen===i?"\u25b2 Rezept":"\u25bc Rezept")
+                    ),
+                    fertigId!==i ? btn({onClick:()=>bestellungFertig(i),style:{width:32,height:32,borderRadius:"50%",background:"rgba(60,160,60,0.15)",border:"1px solid rgba(80,160,80,0.3)",color:"rgba(120,220,120,0.8)",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,lineHeight:1}}, "\u2713") : span({style:{width:32,height:32,borderRadius:"50%",background:"rgba(60,160,60,0.3)",border:"1px solid rgba(80,180,80,0.5)",color:"rgba(120,220,120,1)",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",animation:"bump 0.4s ease"}}, "\u2713")
                   )
                 ),
                 rezeptOffen===i && (()=>{
@@ -969,7 +1019,21 @@ function App() {
                     )
                   );
                 })()
-              )))
+              ))),
+          // Admin: Sirup-Verwaltung
+          isAdmin && div({style:{marginTop:20,padding:"14px",background:"rgba(40,18,4,0.3)",border:"1px solid rgba(160,120,50,0.15)",borderRadius:3}},
+            div({style:{fontSize:10,color:"rgba(180,148,90,0.5)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10,fontWeight:700}}, "Sirup-Auswahl verwalten"),
+            div({style:{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}},
+              ...sirups.map(s => div({key:s,style:{display:"flex",alignItems:"center"}},
+                span({style:{fontSize:12,color:SAND,background:"rgba(61,32,16,0.3)",border:"1px solid rgba(160,120,50,0.25)",borderRadius:"3px 0 0 3px",padding:"5px 10px"}}, s),
+                btn({onClick:()=>{const neu=sirups.filter(x=>x!==s);setSirups(neu);cacheAlles({sirups:neu});if(!testModus)poste("sirups_speichern",{sirups:neu});},style:{fontSize:11,background:"rgba(40,18,4,0.5)",border:"1px solid rgba(160,60,60,0.3)",borderLeft:"none",color:"rgba(200,100,90,0.7)",padding:"5px 7px",cursor:"pointer",borderRadius:"0 3px 3px 0"}}, "\u2715")
+              ))
+            ),
+            div({style:{display:"flex",gap:6}},
+              inp({style:{...INP_STYLE,flex:1,fontSize:13,padding:"8px 10px"},placeholder:"Neuer Sirup\u2026",id:"neuer-sirup"}),
+              btn({onClick:()=>{const el=document.getElementById("neuer-sirup");const v=el?.value?.trim();if(v&&!sirups.includes(v)){const neu=[...sirups,v];setSirups(neu);cacheAlles({sirups:neu});if(!testModus)poste("sirups_speichern",{sirups:neu});el.value="";}},style:{fontSize:12,background:"rgba(40,18,4,0.5)",border:"1px solid rgba(160,120,50,0.25)",color:SAND,padding:"8px 14px",cursor:"pointer",borderRadius:3,letterSpacing:"0.06em"}}, "+ Hinzufügen")
+            )
+          )
         );
       }
       // Kaffee or Tee tab

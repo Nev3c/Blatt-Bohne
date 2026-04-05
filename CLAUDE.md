@@ -29,7 +29,7 @@ localStorage (cache) ← → React App state ← → Google Apps Script API ← 
 ```
 
 ### Key state variables
-`kaffees`, `tees`, `bestellungen`, `tassen`, `kommentare`, `tab` (kaffee/tee/namen/bestellungen), `isAdmin`, `testModus`
+`kaffees`, `tees`, `bestellungen`, `tassen`, `kommentare`, `sirups`, `tab` (kaffee/tee/bestellungen), `isAdmin`, `testModus`, `fertigId`, `gewaehlterSirup`, `gewaehlteMischung`
 
 ### Important components (all defined in `index.html`)
 - `App` — root, all state, all async functions
@@ -54,10 +54,19 @@ Uses an IIFE pattern — do **not** replace with ternary chains:
 Stored as lat/lon in `LAENDER_LATLON`, converted to pixel via `geoToPixel()` at render time. Map image is 900×460 **equirectangular** projection (bounds: 80.3°N to -63.2°S, calibrated from coastline reference points). To add a country, just add `{lat, lon}` to `LAENDER_LATLON`.
 
 ### Order flow (BestellModal)
-Two-step for coffee: (1) choose Zubereitung → (2) optional name + Bestellen. One-step for tea: name + Bestellen directly. Saved guest names are stored in localStorage (`NAMES_CACHE_KEY`) and shown as selectable chips. Admin can delete saved names.
+Two-step for coffee: (1) choose Zubereitung → (2) optional sirup + name + Bestellen. One-step for tea: optional mix + name + Bestellen. Saved guest names are stored in localStorage (`NAMES_CACHE_KEY`) and shown as selectable chips. Admin can delete saved names.
+
+### Bestellungen tab
+Visible to **all users** (not just admin). Shows live order board with 10s polling. Each order has a ✓ button to mark as "fertiggestellt" (checkmark animation → auto-hide after 1.2s). Admin also sees "Reset" and "Duplikate" buttons, plus a sirup management panel.
+
+### Sirup system
+Global sirup list stored in `sirups` state, synced to Google Sheets. Admin manages via panel in Bestellungen tab. Sirups are only selectable for coffee orders (not tea). Initial defaults: Haselnuss, Mandel, Karamell, Vanille.
+
+### Tee-Mix (Mischungen)
+Each tea has `params.moeglicheMischungen` (array of `{name, id}`). Admin manages via Formular when editing a tea. During ordering, guest sees mix picker if more than "pur" is available. Selected mix is stored in `bestellung.zubereitung`.
 
 ## API Actions (`aktion` parameter to Google Apps Script)
-`kaffees_speichern` · `tees_speichern` · `bestellung_hinzufuegen` · `bestellungen_leeren` · `tassen_speichern` · `kommentar_hinzufuegen` · `kommentar_loeschen`
+`kaffees_speichern` · `tees_speichern` · `bestellung_hinzufuegen` · `bestellung_loeschen` · `tassen_speichern` · `sirups_speichern` · `kommentar_hinzufuegen` · `kommentar_loeschen`
 
 ## Auth
 PINs verified client-side with Web Crypto API (SHA-256).  
@@ -83,14 +92,15 @@ const BROWN = '#2a1608'  // text on buttons
 ### Tee (Tea)
 ```js
 { id, name, subtitle, sorte, aromen:[], intensitaet, bild, laender:[], outOfStock,
-  moeglicheMischungen:[{name,id}],  // optional; default: [{name:"pur",id:"m0"}]
-  params:{ menge, temp, ziehzeit } }
+  params:{ menge, temp, ziehzeit, moeglicheMischungen:[{name,id}] } }
+// moeglicheMischungen default: [{name:"pur",id:"m0"}]
 ```
 
 ### Bestellung (Order)
 ```js
-{ gast, getraenk, typ, zubereitung, uhrzeit }
-// zubereitung: preparation type for coffee; blend name for tea; null for pure tea
+{ gast, getraenk, typ, zubereitung, sirup, uhrzeit }
+// zubereitung: preparation type for coffee; mix name for tea; null for pure tea
+// sirup: selected syrup for coffee; null for tea or no syrup
 ```
 
 ## Critical Pitfalls
