@@ -642,7 +642,8 @@ function App() {
   const [pinAnzeigen, setPinAnzeigen] = useState(false);
   const [qrOffen, setQrOffen] = useState(false);
   const [speichert, setSpeichert] = useState(false);
-  const [serverGeladen, setServerGeladen] = useState(!!cache);
+  const [serverGeladen, setServerGeladen] = useState(false);
+  const [cacheVorhanden] = useState(!!cache);
   const [gastName, setGastName] = useState("");
   const [rezeptOffen, setRezeptOffen] = useState(null);
   const [fertigId, setFertigId] = useState(null);
@@ -1106,8 +1107,8 @@ function App() {
           span({style:{fontSize:12,color:"rgba(180,148,90,0.55)"}}, [filterTeeSorte,filterAroma].filter(Boolean).join(" \u00b7 ")+" \u2014 "+aktItems.length+" Treffer"),
           btn({onClick:()=>{setFilterAroma(null);setFilterTeeSorte(null);},style:{fontSize:13,background:"transparent",border:"none",color:"rgba(220,100,100,0.7)",cursor:"pointer",padding:"2px 6px"}}, "\u2715")
         ) : null,
-        !serverGeladen ? h(Lader) : null,
-        ...(serverGeladen ? aktItems : []).map(item => h(Karte, {
+        !(serverGeladen||cacheVorhanden) ? h(Lader) : null,
+        ...((serverGeladen||cacheVorhanden) ? aktItems : []).map(item => h(Karte, {
           key:item.id, item, istTee:istTeeTab,
           isAdmin, onLoeschen:id=>loeschen(id,istTeeTab),
           onBestellen:item=>setBestellModal({item,istTee:istTeeTab}),
@@ -1124,7 +1125,7 @@ function App() {
               "+ "+(istTeeTab?"Tee":"Kaffee")+" hinzuf\u00fcgen"
             )
         ) : null,
-        aktItems.length === 0 && serverGeladen ? div({style:{textAlign:"center",padding:"50px 20px",color:"rgba(160,120,50,0.25)",fontSize:13,letterSpacing:"0.1em",textTransform:"uppercase"}}, hatFilter?"Keine Treffer":"Noch keine Eintr\u00e4ge") : null
+        aktItems.length === 0 && (serverGeladen||cacheVorhanden) ? div({style:{textAlign:"center",padding:"50px 20px",color:"rgba(160,120,50,0.25)",fontSize:13,letterSpacing:"0.1em",textTransform:"uppercase"}}, hatFilter?"Keine Treffer":"Noch keine Eintr\u00e4ge") : null
       );
     })()
   );
