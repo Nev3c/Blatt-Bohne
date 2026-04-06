@@ -94,28 +94,49 @@ const BORDER = '#8a6a3a';
 const ROESTGRADE = ["Hell","Mittelhell","Mittel","Mitteldunkel","Dunkel","Sehr Dunkel"];
 const TEE_SORTEN = ["Grüner Tee","Weißer Tee","Oolong","Schwarzer Tee","Kräutertee","Frühchtetee","Pu-Erh","Rooibos","Matcha","Gewürztee"];
 const ZUBEREITUNGSARTEN = ["Espresso","Espresso Macchiato","Cappuccino","Latte Macchiato","Tasse Schwarz"];
+const STANDARD_MILCH = {"Espresso":null,"Espresso Macchiato":"20ml","Cappuccino":"150ml","Latte Macchiato":"250ml","Tasse Schwarz":null};
 const ROEST_HEX = {"Hell":"#e8c850","Mittelhell":"#c89828","Mittel":"#a07018","Mitteldunkel":"#784808","Dunkel":"#4c2605","Sehr Dunkel":"#2a1204"};
 const TEE_HEX = {"Grüner Tee":"#3a7228","Weißer Tee":"#8a7850","Oolong":"#784818","Schwarzer Tee":"#4c2605","Kräutertee":"#486028","Früchtetee":"#903018","Pu-Erh":"#341408","Rooibos":"#803018","Matcha":"#306018","Gewürztee":"#683818"};
 
 // Lat/lon for each country – converted to pixel at render time
 const LAENDER_LATLON = {
-  "Indien":{lat:14.8,lon:75.2},"Japan":{lat:35.1,lon:131.2},"China":{lat:31.9,lon:99.2},
-  "Vietnam":{lat:15.7,lon:103.2},"Indonesien":{lat:2.3,lon:107.2},
+  "Indien":{lat:14.8,lon:75.2},"India":{lat:14.8,lon:75.2},
+  "Japan":{lat:35.1,lon:131.2},"China":{lat:31.9,lon:99.2},
+  "Vietnam":{lat:15.7,lon:103.2},"Indonesien":{lat:2.3,lon:107.2},"Indonesia":{lat:2.3,lon:107.2},
   "Thailand":{lat:14.8,lon:99.2},"Nepal":{lat:23.2,lon:75.2},"Taiwan":{lat:20.4,lon:115.2},
-  "Russland":{lat:59.1,lon:79.2},
-  "\u00c4thiopien":{lat:10.1,lon:39.2},"Kenia":{lat:3.9,lon:38.4},"Tansania":{lat:-0.2,lon:37.2},
-  "Ruanda":{lat:2.9,lon:34.4},"Uganda":{lat:5.4,lon:35.2},
-  "Marokko":{lat:28.8,lon:4.8},"Kamerun":{lat:9.2,lon:21.2},
-  "Italien":{lat:43.8,lon:11.2},"Deutschland":{lat:49.1,lon:8.0},"Frankreich":{lat:46.6,lon:3.2},
-  "Griechenland":{lat:42.2,lon:16.8},
-  "USA":{lat:38.2,lon:-98},"Mexiko":{lat:23.2,lon:-100.8},
-  "Kolumbien":{lat:4.8,lon:-76.8},"Brasilien":{lat:-10.2,lon:-62},
+  "Russland":{lat:59.1,lon:79.2},"Russia":{lat:59.1,lon:79.2},
+  "\u00c4thiopien":{lat:10.1,lon:39.2},"Ethiopia":{lat:10.1,lon:39.2},
+  "Kenia":{lat:3.9,lon:38.4},"Kenya":{lat:3.9,lon:38.4},
+  "Tansania":{lat:-0.2,lon:37.2},"Tanzania":{lat:-0.2,lon:37.2},
+  "Ruanda":{lat:2.9,lon:34.4},"Rwanda":{lat:2.9,lon:34.4},
+  "Uganda":{lat:5.4,lon:35.2},
+  "Marokko":{lat:28.8,lon:4.8},"Morocco":{lat:28.8,lon:4.8},
+  "Kamerun":{lat:9.2,lon:21.2},"Cameroon":{lat:9.2,lon:21.2},
+  "Italien":{lat:43.8,lon:11.2},"Italy":{lat:43.8,lon:11.2},
+  "Deutschland":{lat:49.1,lon:8.0},"Germany":{lat:49.1,lon:8.0},
+  "Frankreich":{lat:46.6,lon:3.2},"France":{lat:46.6,lon:3.2},
+  "Griechenland":{lat:42.2,lon:16.8},"Greece":{lat:42.2,lon:16.8},
+  "USA":{lat:38.2,lon:-98},"Mexiko":{lat:23.2,lon:-100.8},"Mexico":{lat:23.2,lon:-100.8},
+  "Kolumbien":{lat:4.8,lon:-76.8},"Colombia":{lat:4.8,lon:-76.8},
+  "Brasilien":{lat:-10.2,lon:-62},"Brazil":{lat:-10.2,lon:-62},
   "Peru":{lat:-7,lon:-79.2},"Guatemala":{lat:15.4,lon:-92.8},
   "Costa Rica":{lat:11,lon:-90},
-  "Australien":{lat:-25.1,lon:135.2},
-  "Bulgarien":{lat:45.4,lon:18.4},
-  "Kanada":{lat:49.1,lon:-104},
-  "Argentinien":{lat:-33.6,lon:-68.8},
+  "Australien":{lat:-25.1,lon:135.2},"Australia":{lat:-25.1,lon:135.2},
+  "Bulgarien":{lat:45.4,lon:18.4},"Bulgaria":{lat:45.4,lon:18.4},
+  "Kanada":{lat:49.1,lon:-104},"Canada":{lat:49.1,lon:-104},
+  "Argentinien":{lat:-33.6,lon:-68.8},"Argentina":{lat:-33.6,lon:-68.8},
+  "Honduras":{lat:14.8,lon:-87.2},"Nicaragua":{lat:12.8,lon:-85.2},
+  "El Salvador":{lat:13.7,lon:-89},"Ecuador":{lat:-1.5,lon:-78.5},
+  "Bolivia":{lat:-17,lon:-65},"Bolivien":{lat:-17,lon:-65},
+  "Paraguay":{lat:-23.4,lon:-58.4},
+  "Kongo":{lat:-2.5,lon:23.5},"Congo":{lat:-2.5,lon:23.5},
+  "Südafrika":{lat:-29,lon:24.5},"South Africa":{lat:-29,lon:24.5},
+  "Jemen":{lat:15.5,lon:48},"Yemen":{lat:15.5,lon:48},
+  "Myanmar":{lat:19.8,lon:96.5},"Laos":{lat:18.2,lon:102.6},
+  "Philippinen":{lat:12.8,lon:121.8},"Philippines":{lat:12.8,lon:121.8},
+  "Papua-Neuguinea":{lat:-6.3,lon:147},"Papua New Guinea":{lat:-6.3,lon:147},
+  "Hawaii":{lat:20.8,lon:-156},"Jamaica":{lat:18.1,lon:-77.3},"Jamaika":{lat:18.1,lon:-77.3},
+  "Sri Lanka":{lat:7.8,lon:80.7},"Türkei":{lat:39,lon:35.2},"Turkey":{lat:39,lon:35.2},
 };
 // Equirectangular projection; lat/lon values in LAENDER_LATLON are
 // empirically adjusted to match pin positions on this specific map image
@@ -775,6 +796,8 @@ function App() {
   const [gewaehlterSirup, setGewaehlterSirup] = useState(null);
   const [gewaehlteMischung, setGewaehlteMischung] = useState(null);
 
+  const [milchmengen, setMilchmengen] = useState(cache?.milchmengen || STANDARD_MILCH);
+
   // Schutz gegen Datenverlust: merke wie viele Items der Server hatte
   const serverAnzahl = useRef({kaffees:0, tees:0});
 
@@ -823,7 +846,7 @@ function App() {
     return () => clearInterval(intervall);
   }, [isAdmin, testModus, tab]);
 
-  const cacheAlles = (overrides={}) => speichereCache({kaffees,tees,bestellungen,tassen,kommentare,sirups,...overrides});
+  const cacheAlles = (overrides={}) => speichereCache({kaffees,tees,bestellungen,tassen,kommentare,sirups,milchmengen,...overrides});
   const postiereWennEcht = async (a,d) => { if(testModus)return; await poste(a,d); };
   // Datenverlust-Schutz: prüfe ob wir gerade massiv Daten löschen würden
   const sicherSpeichern = (aktion, daten) => {
@@ -1043,7 +1066,10 @@ function App() {
             )
           // Step 1 (Kaffee after Zubereitung) or Tee directly: Name + Bestellen
           : div(null,
-              gewaehlteZubereitung ? div({style:{fontSize:13,color:SAND,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:12,padding:"8px 12px",background:"rgba(61,32,16,0.3)",border:"1px solid rgba(160,120,50,0.25)",borderRadius:3,display:"inline-block"}}, gewaehlteZubereitung) : null,
+              gewaehlteZubereitung ? div({style:{display:"flex",alignItems:"center",gap:10,marginBottom:12}},
+                div({style:{fontSize:13,color:SAND,letterSpacing:"0.08em",textTransform:"uppercase",padding:"8px 12px",background:"rgba(61,32,16,0.3)",border:"1px solid rgba(160,120,50,0.25)",borderRadius:3}}, gewaehlteZubereitung),
+                (milchmengen[gewaehlteZubereitung]||STANDARD_MILCH[gewaehlteZubereitung]) ? div({style:{fontSize:11,color:W(0.4)}}, "\ud83e\udd5b "+(milchmengen[gewaehlteZubereitung]||STANDARD_MILCH[gewaehlteZubereitung])) : null
+              ) : null,
               // Sirup-Auswahl (nur Kaffee)
               !bestellModal.istTee ? div({style:{marginBottom:14}},
                 div({style:{fontSize:10,color:"rgba(180,148,90,0.55)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:6,fontWeight:600}}, "Sirup (optional)"),
@@ -1172,13 +1198,15 @@ function App() {
                   const item = [...kaffees,...tees].find(k=>k.name===b.getraenk);
                   if(!item||!item.params) return div({style:{padding:"0 15px 12px",fontSize:12,color:"rgba(180,148,90,0.4)"}}, "Keine Brühparameter");
                   const p = item.params;
+                  const milchWert = b.zubereitung ? (milchmengen[b.zubereitung] || STANDARD_MILCH[b.zubereitung] || null) : null;
                   const rows = p.mahlgrad!=null ? [
                     ["Mahlgrad", (()=>{const m=p.mahlgrad;return (m<=10?Math.round(m*3):Math.round(m))+"/30";})()],
                     ["Dosis", p.dosis],
                     ["Temp.", p.temp],
                     ["Brühzeit", p.zeit],
-                    ["Aufguss", (()=>{const ratio=p.ratio||"";const dosis=p.dosis||"";const rM=ratio.match(/1[:/]([\d,.]+)/);const dM=dosis.match(/([\d,.]+)[^\d,.]*(?:[-\u2013]([\d,.]+))?/);const rN=rM?parseFloat(rM[1].replace(",",".")):null;const dN=dM?parseFloat((dM[2]||dM[1]).replace(",",".")):null;return rN&&dN?ratio+" \u2248 "+Math.round(dN*rN)+"g":ratio;})()]
-                  ] : [
+                    ["Aufguss", (()=>{const ratio=p.ratio||"";const dosis=p.dosis||"";const rM=ratio.match(/1[:/]([\d,.]+)/);const dM=dosis.match(/([\d,.]+)[^\d,.]*(?:[-\u2013]([\d,.]+))?/);const rN=rM?parseFloat(rM[1].replace(",",".")):null;const dN=dM?parseFloat((dM[2]||dM[1]).replace(",",".")):null;return rN&&dN?ratio+" \u2248 "+Math.round(dN*rN)+"g":ratio;})()],
+                    milchWert ? ["Milch", milchWert] : null
+                  ].filter(Boolean) : [
                     ["Menge", p.menge],
                     ["Temp.", p.temp],
                     ["Ziehzeit", p.ziehzeit]
@@ -1216,6 +1244,20 @@ function App() {
             div({style:{display:"flex",gap:6}},
               inp({style:{...INP_STYLE,flex:1,fontSize:13,padding:"8px 10px"},placeholder:"Neuer Sirup\u2026",id:"neuer-sirup"}),
               btn({onClick:()=>{const el=document.getElementById("neuer-sirup");const v=el?.value?.trim();if(v&&!sirups.includes(v)){const neu=[...sirups,v];setSirups(neu);cacheAlles({sirups:neu});if(!testModus)poste("sirups_speichern",{sirups:neu});el.value="";}},style:{fontSize:12,background:"rgba(40,18,4,0.5)",border:"1px solid rgba(160,120,50,0.25)",color:SAND,padding:"8px 14px",cursor:"pointer",borderRadius:3,letterSpacing:"0.06em"}}, "+ Hinzufügen")
+            )
+          ),
+          // Admin: Milchmengen-Verwaltung
+          isAdmin && div({style:{marginTop:14,padding:"14px",background:"rgba(40,18,4,0.3)",border:"1px solid rgba(160,120,50,0.15)",borderRadius:3}},
+            div({style:{fontSize:10,color:"rgba(180,148,90,0.5)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10,fontWeight:700}}, "Milchmengen pro Zubereitung"),
+            div({style:{display:"flex",flexDirection:"column",gap:6}},
+              ...ZUBEREITUNGSARTEN.map(z => div({key:z,style:{display:"flex",alignItems:"center",gap:8}},
+                span({style:{fontSize:12,color:SAND,flex:1,minWidth:120}}, z),
+                inp({style:{...INP_STYLE,width:80,fontSize:13,padding:"6px 10px",textAlign:"center"},
+                  value:milchmengen[z]||"",
+                  placeholder:"\u2014",
+                  onChange:ev=>{const neu={...milchmengen,[z]:ev.target.value||null};setMilchmengen(neu);cacheAlles({milchmengen:neu});}
+                })
+              ))
             )
           )
         );
