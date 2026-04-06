@@ -174,7 +174,7 @@ async function komprimiereListenBilder(liste) {
 
 function ladeCache(){try{const c=localStorage.getItem(CACHE_KEY);return c?JSON.parse(c):null;}catch{return null;}}
 function speichereCache(d){try{localStorage.setItem(CACHE_KEY,JSON.stringify(d));}catch{}}
-async function ladeVomServer(){const r=await fetch(API_URL+"?aktion=laden");const d=await r.json();console.log("[API] Geladen: Kaffees:",d.kaffees?.length||0,"Tees:",d.tees?.length||0,"Bestellungen:",d.bestellungen?.length||0);return d;}
+async function ladeVomServer(){const r=await fetch(API_URL+"?aktion=laden");const d=await r.json();console.log("[API] Geladen: Kaffees:",d.kaffees?.length||0,"Tees:",d.tees?.length||0,"Bestellungen:",d.bestellungen?.length||0,"Tassen:",JSON.stringify(d.tassen));return d;}
 async function poste(a,d){try{const body=JSON.stringify({aktion:a,...d});console.log("[API] POST",a,"Datenmenge:",body.length,"Bytes");const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body});const t=await r.text();console.log("[API] POST Antwort:",a,t.substring(0,200));}catch(e){console.error("[API] POST fehlgeschlagen:",a,e);}}
 
 // ── Namen-Cache Funktionen ────
@@ -944,6 +944,7 @@ function App() {
     const b = {gast:name,getraenk:item.name,typ:istTee?"Tee":"Kaffee",zubereitung:istTee?mixName:(zubereitung||null),sirup:(!istTee&&gewaehlterSirup)||null,uhrzeit:new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})};
     const neuB = [...bestellungen,b];
     const neuT = {...tassen,[item.id]:(tassen[item.id]||0)+1};
+    console.log("[TASSEN] Bestellt:",item.name,"ID:",item.id,"Tassen vorher:",tassen[item.id]||0,"nachher:",neuT[item.id],"Gesamt:",JSON.stringify(neuT));
     setBestellungen(neuB); setTassen(neuT); setBestellModal(null); setBestaetigt(b); setGastName(""); setBestellSchritt(0); setGewaehlteZubereitung(null); setGewaehlterSirup(null); setGewaehlteMischung(null);
     await poste("bestellung_hinzufuegen",{bestellung:b});
     if (!testModus) await poste("tassen_speichern",{tassen:neuT});
