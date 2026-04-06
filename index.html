@@ -788,7 +788,9 @@ function App() {
       if(dk) setKaffees(dk);
       if(dt) setTees(dt);
       if(d.bestellungen?.length>0) setBestellungen(d.bestellungen);
-      if(d.tassen&&Object.keys(d.tassen).length>0) setTassen(d.tassen);
+      // Tassen: Backend gibt Array [{...}] zurück, Frontend erwartet Objekt {...}
+      const tassenObj = Array.isArray(d.tassen) ? (d.tassen[0]||{}) : (d.tassen||{});
+      if(Object.keys(tassenObj).length>0) setTassen(tassenObj);
       if(d.kommentare?.length>0) setKommentare(d.kommentare);
       if(d.sirups?.length>0) setSirups(d.sirups);
       // Cache: bestehende Daten bewahren wenn Server leer antwortet
@@ -796,7 +798,7 @@ function App() {
         kaffees: dk || (cache?.kaffees||[]),
         tees: dt || (cache?.tees||[]),
         bestellungen: d.bestellungen?.length>0 ? d.bestellungen : (cache?.bestellungen||[]),
-        tassen: (d.tassen && Object.keys(d.tassen).length>0) ? d.tassen : (cache?.tassen||{}),
+        tassen: Object.keys(tassenObj).length>0 ? tassenObj : (cache?.tassen||{}),
         kommentare: d.kommentare?.length>0 ? d.kommentare : (cache?.kommentare||[]),
         sirups: d.sirups?.length>0 ? d.sirups : (cache?.sirups||DEFAULT_SIRUPS),
       });
@@ -814,7 +816,8 @@ function App() {
       try {
         const d = await ladeVomServer();
         if (d.bestellungen) setBestellungen(d.bestellungen);
-        if (d.tassen && Object.keys(d.tassen).length > 0) setTassen(d.tassen);
+        const pt = Array.isArray(d.tassen) ? (d.tassen[0]||{}) : (d.tassen||{});
+        if (Object.keys(pt).length > 0) setTassen(pt);
       } catch {}
     }, 10000);
     return () => clearInterval(intervall);
