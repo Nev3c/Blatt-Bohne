@@ -198,6 +198,9 @@ function speichereCache(d){try{localStorage.setItem(CACHE_KEY,JSON.stringify(d))
 async function ladeVomServer(){const r=await fetch(API_URL+"?aktion=laden");return r.json();}
 async function poste(a,d){try{await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({aktion:a,...d})});}catch(e){console.error("[API] POST fehlgeschlagen:",a,e);}}
 
+// Alte Mahlgrad-Werte (1-10) auf /30-Skala migrieren
+function migriereKaffees(kaffees){return kaffees.map(k=>{if(k.params&&k.params.mahlgrad!=null){const m=Number(k.params.mahlgrad);if(m>0&&m<=10){k.params.mahlgrad=m*3;}}return k;});}
+
 // ── Namen-Cache Funktionen ────
 function ladeGespecherteNamen(){try{const n=localStorage.getItem(NAMES_CACHE_KEY);return n?JSON.parse(n):[];}catch{return [];}}
 function speichereNamen(n){localStorage.setItem(NAMES_CACHE_KEY,JSON.stringify(n));}
@@ -396,7 +399,7 @@ function Karte({item,istTee,isAdmin,onLoeschen,onBestellen,onBearbeiten,onToggle
   const akzent = istTee ? (TEE_HEX[item.sorte]||"#4a7028") : (ROEST_HEX[item.roest]||"#6b3a1f");
   const zeilen = istTee
     ? [["Menge",item.params.menge],["Temperatur",item.params.temp],["Ziehzeit",item.params.ziehzeit]]
-    : [["Mahlgrad",(()=>{ const m=Number(item.params.mahlgrad)||18; const d=m<=10?Math.round(m*3):Math.round(m); return `${d}/30`; })()],["Dosis",item.params.dosis],["Temperatur",item.params.temp],["Brühzeit",item.params.zeit],["Aufguss",(()=>{
+    : [["Mahlgrad",(()=>{ const m=Number(item.params.mahlgrad)||18; return `${Math.round(m)}/30`; })()],["Dosis",item.params.dosis],["Temperatur",item.params.temp],["Brühzeit",item.params.zeit],["Aufguss",(()=>{
     const ratio = item.params.ratio||"";
     const dosis = item.params.dosis||"";
     // Parse ratio number: "1:2,25" → 2.25
@@ -544,7 +547,7 @@ function Formular({istTee, onSpeichern, onAbbrechen, editData=null, editModus=fa
     a1:(editData.aromen||[])[0]||"",a2:(editData.aromen||[])[1]||"",a3:(editData.aromen||[])[2]||"",
     intensitaet:editData.intensitaet||3,
     dosis:editData.params?.dosis||"",temp:parseFloat(editData.params?.temp)||"",
-    zeit:editData.params?.zeit||"",ratio:editData.params?.ratio||"1:2",mahlgrad:String((()=>{const m=Number(editData.params?.mahlgrad)||18;return m<=10?m*3:m;})()),
+    zeit:editData.params?.zeit||"",ratio:editData.params?.ratio||"1:2",mahlgrad:String(Number(editData.params?.mahlgrad)||18),
     menge:editData.params?.menge||"3g",ziehzeit:editData.params?.ziehzeit||"3 Min.",
     bild:editData.bild||null,laender:editData.laender||[],
     moeglicheMischungen:editData.params?.moeglicheMischungen||[{name:"pur",id:"m0"}]
@@ -763,7 +766,7 @@ function ImageCropper({src, onSave, onAbbrechen}) {
 // ── App ────────────────────────────────────────────────────────
 function App() {
   const cache = ladeCache();
-  const [kaffees, setKaffees] = useState(dedupListe(cache?.kaffees||[]));
+  const [kaffees, setKaffees] = useState(migriereKaffees(dedupListe(cache?.kaffees||[])));
   const [tees, setTees] = useState(gabeDefaultMischungen(dedupListe(cache?.tees||[])));
   const [bestellungen, setBestellungen] = useState(cache?.bestellungen||[]);
   const [tassen, setTassen] = useState(cache?.tassen||{});
@@ -801,7 +804,7 @@ function App() {
   const serverLaden = useCallback(async () => {
     try {
       const d = await ladeVomServer();
-      const dk = d.kaffees?.length>0 ? dedupListe(d.kaffees) : null;
+      const dk = d.kaffees?.length>0 ? migriereKaffees(dedupListe(d.kaffees)) : null;
       const dt = d.tees?.length>0 ? gabeDefaultMischungen(dedupListe(d.tees)) : null;
       // Server-Anzahl merken für Datenverlust-Schutz
       serverAnzahl.current = {kaffees: dk?dk.length:0, tees: dt?dt.length:0};
@@ -1197,7 +1200,7 @@ function App() {
                   const p = item.params;
                   const milchWert = b.zubereitung ? (milchmengen[b.zubereitung] || STANDARD_MILCH[b.zubereitung] || null) : null;
                   const rows = p.mahlgrad!=null ? [
-                    ["Mahlgrad", (()=>{const m=p.mahlgrad;return (m<=10?Math.round(m*3):Math.round(m))+"/30";})()],
+                    ["Mahlgrad", (()=>{const m=Number(p.mahlgrad)||18;return Math.round(m)+"/30";})()],
                     ["Dosis", p.dosis],
                     ["Temp.", p.temp],
                     ["Brühzeit", p.zeit],
@@ -1210,11 +1213,13 @@ function App() {
                   ];
                   // Mix-Details finden wenn Bestellung einen Mix hat
                   const mixDetail = b.zubereitung && p.moeglicheMischungen ? p.moeglicheMischungen.find(m=>m.name===b.zubereitung) : null;
+                  // Wenn Mix aktiv: Menge-Zeile durch Mix-Gesamtgewicht ersetzen
+                  if(mixDetail&&mixDetail.partner){const gesamt=(parseFloat(mixDetail.basis||0)+(mixDetail.partner||[]).reduce((s,x)=>s+parseFloat(x.g||0),0)).toFixed(2);const idx=rows.findIndex(r=>r[0]==="Menge");if(idx>=0)rows[idx]=["Menge",gesamt+"g"];}
                   return div({style:{margin:"0 15px 12px",padding:"10px 12px",background:"rgba(20,8,2,0.6)",borderRadius:3,border:"1px solid rgba(160,120,50,0.2)"}},
                     div({style:{fontSize:10,color:"rgba(180,148,90,0.55)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8,fontWeight:700}},
                       "REZEPT"+(b.zubereitung?" \u2014 "+b.zubereitung.toUpperCase():"")),
                     mixDetail&&mixDetail.partner ? div({style:{marginBottom:8,padding:"6px 8px",background:"rgba(160,120,50,0.08)",borderRadius:2,border:"1px solid rgba(160,120,50,0.12)"}},
-                      div({style:{fontSize:10,color:"rgba(180,148,90,0.5)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}, "MIX-ZUSAMMENSETZUNG \u00b7 "+(parseFloat(mixDetail.basis)+(mixDetail.partner||[]).reduce((s,x)=>s+parseFloat(x.g||0),0)).toFixed(2)+"g"),
+                      div({style:{fontSize:10,color:"rgba(180,148,90,0.5)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}, "MISCHUNG"),
                       div({style:{fontSize:12,color:"#e8d0a0"}},
                         span({style:{fontWeight:700}}, item.name), " "+mixDetail.basis+"g",
                         ...mixDetail.partner.map(mp => span({key:mp.name,style:{color:W(0.6)}}, " + "+mp.name+" "+mp.g+"g"))
