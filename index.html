@@ -198,8 +198,8 @@ function speichereCache(d){try{localStorage.setItem(CACHE_KEY,JSON.stringify(d))
 async function ladeVomServer(){const r=await fetch(API_URL+"?aktion=laden");return r.json();}
 async function poste(a,d){try{await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({aktion:a,...d})});}catch(e){console.error("[API] POST fehlgeschlagen:",a,e);}}
 
-// Alte Mahlgrad-Werte (1-10) auf /30-Skala migrieren
-function migriereKaffees(kaffees){return kaffees.map(k=>{if(k.params&&k.params.mahlgrad!=null){const m=Number(k.params.mahlgrad);if(m>0&&m<=10){k.params.mahlgrad=m*3;}}return k;});}
+// Alte Mahlgrad-Werte (1-10) einmalig auf /30-Skala migrieren
+function migriereKaffees(kaffees){if(localStorage.getItem("mahlgrad_migriert"))return kaffees;const geaendert=kaffees.map(k=>{if(k.params&&k.params.mahlgrad!=null){const m=Number(k.params.mahlgrad);if(m>0&&m<=10){k.params.mahlgrad=m*3;}}return k;});localStorage.setItem("mahlgrad_migriert","1");return geaendert;}
 
 // ── Namen-Cache Funktionen ────
 function ladeGespecherteNamen(){try{const n=localStorage.getItem(NAMES_CACHE_KEY);return n?JSON.parse(n):[];}catch{return [];}}
